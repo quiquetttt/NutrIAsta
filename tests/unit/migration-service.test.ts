@@ -6,7 +6,7 @@ import { NutrIAstaDatabase } from '@/storage/database.web';
 import { DatasetRepository } from '@/storage/dataset-repository.web';
 import { NutrIAstaMainDatabase } from '@/storage/main-database.web';
 import { MainDatasetRepository } from '@/storage/main-dataset-repository.web';
-import { MAIN_DATABASE_STORES } from '@/storage/main-schema';
+import { MAIN_DATABASE_STORES, MAIN_DATABASE_VERSION } from '@/storage/main-schema';
 import { sha256Blob } from '@/utils/crypto';
 
 const databases: Array<NutrIAstaDatabase | NutrIAstaMainDatabase> = [];
@@ -75,7 +75,7 @@ describe('migración segura a la base paralela', () => {
       .toBe(LEGACY_NATIVE_DATABASE_VERSION);
     expect(legacyDatabase.verno).toBe(sourceVersion);
     expect(legacyDatabase.tables.map(({ name }) => name).sort()).toEqual(sourceStores);
-    expect(mainDatabase.verno).toBe(1);
+    expect(mainDatabase.verno).toBe(MAIN_DATABASE_VERSION);
     expect(mainDatabase.tables.map(({ name }) => name).sort()).toEqual(Object.keys(MAIN_DATABASE_STORES).sort());
   });
 

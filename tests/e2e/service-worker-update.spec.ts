@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { MAIN_DATABASE_VERSION } from '../../src/storage/main-schema';
 import { readLegacyState, seedLegacyDatabase } from './legacy-fixture';
 
 test('actualiza el service worker sin eliminar ni cambiar ninguna IndexedDB', async ({ page, request }) => {
@@ -28,5 +29,5 @@ test('actualiza el service worker sin eliminar ni cambiar ninguna IndexedDB', as
   expect(await readLegacyState(page)).toEqual(before);
   const databases = await page.evaluate(() => indexedDB.databases());
   expect(databases.find(({ name }) => name === 'nutriasta')?.version).toBe(10);
-  expect(databases.find(({ name }) => name === 'nutriasta-main')?.version).toBe(10);
+  expect(databases.find(({ name }) => name === 'nutriasta-main')?.version).toBe(MAIN_DATABASE_VERSION * 10);
 });

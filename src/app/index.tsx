@@ -1,5 +1,5 @@
-import { ViabilityScreen } from '@/features/viability/viability-screen';
+import { MvpScreen } from '@/features/mvp/mvp-screen';
 
 export default function HomeRoute() {
-  return <ViabilityScreen />;
+  return <MvpScreen />;
 }

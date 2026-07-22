@@ -7,9 +7,11 @@ import type {
   MainMetadataEntry,
   MigrationRun,
 } from '@/storage/main-dataset-types';
+import type { NutritionTargetPeriod, Profile } from '@/mvp/profile-types';
 import {
   MAIN_DATABASE_NAME,
   MAIN_DATABASE_STORES,
+  MAIN_DATABASE_STORES_V1,
   MAIN_DATABASE_VERSION,
 } from '@/storage/main-schema';
 
@@ -19,9 +21,12 @@ export class NutrIAstaMainDatabase extends Dexie {
   migrationRuns!: Table<MigrationRun, string>;
   legacyViabilityRecords!: Table<MainLegacyViabilityRecord, [string, string]>;
   legacyViabilityPhotos!: Table<MainLegacyViabilityPhoto, [string, string]>;
+  profiles!: Table<Profile, [string, string]>;
+  nutritionTargetPeriods!: Table<NutritionTargetPeriod, [string, string]>;
 
   constructor(name = MAIN_DATABASE_NAME) {
     super(name);
+    this.version(1).stores(MAIN_DATABASE_STORES_V1);
     this.version(MAIN_DATABASE_VERSION).stores(MAIN_DATABASE_STORES);
   }
 }
