@@ -30,6 +30,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "build:web": "node scripts/build-web.mjs",
+    "build:hosting": "node scripts/build-web.mjs && node scripts/prepare-hosting.mjs",
+    "verify:deployment": "node scripts/verify-deployment.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

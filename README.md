@@ -9,7 +9,7 @@ Esta versión valida exclusivamente instalación PWA, apertura offline, IndexedD
 - No hay backend, cuentas, analítica, APIs, telemetría ni transmisión de fotografías.
 - Se debe utilizar exclusivamente información ficticia y fotografías de objetos sin personas, etiquetas privadas ni datos identificables.
 - La persistencia de Safari no está garantizada, incluso si `navigator.storage.persisted()` devuelve `true`.
-- No se debe crear un remoto Git, publicar `dist/` ni activar hosting sin autorización expresa independiente.
+- La versión 0.1.0 cuenta con autorización expresa para un único despliegue HTTPS temporal. Una segunda versión o cualquier cambio del contenido requiere una autorización nueva.
 
 ## Entorno requerido
 
@@ -34,6 +34,8 @@ npm run build:web
 npm run test:e2e
 npx expo-doctor
 ```
+
+El paquete exacto para el hosting estático se genera con `npm run build:hosting`. Tras publicar una versión autorizada, `npm run verify:deployment -- https://URL` comprueba HTTPS, manifiesto, iconos, política de caché de `sw.js`, control del service worker, apertura offline y orígenes de las solicitudes.
 
 `npm run build:web` elimina primero la carpeta `dist`, vuelve a exportar la web estática, genera el service worker y verifica automáticamente:
 
@@ -108,13 +110,13 @@ Cuando exista autorización para un despliegue HTTPS de prueba:
 
 La superación de estas pruebas solo demuestra el comportamiento del iPhone probado; iOS puede eliminar almacenamiento web posteriormente.
 
-## Futuro despliegue HTTPS — instrucciones, no ejecutadas
+## Despliegue HTTPS
 
-1. Obtener autorización expresa para el proveedor y para publicar esta versión ficticia.
-2. Ejecutar `npm ci`, la validación completa y `npm run build:web` en un entorno limpio.
-3. Publicar exclusivamente el contenido generado en `dist/` bajo un mismo origen HTTPS.
+1. Obtener autorización expresa para cada versión que se vaya a publicar. La autorización actual se limita a la versión ficticia 0.1.0.
+2. Ejecutar `npm ci`, la validación completa y `npm run build:hosting` en un entorno limpio.
+3. Publicar exclusivamente el paquete estático generado bajo el mismo origen HTTPS estable.
 4. Servir `manifest.webmanifest` con un tipo MIME apropiado y `sw.js` sin caché HTTP prolongada.
 5. No añadir analítica, cabeceras que envíen datos a terceros, APIs ni transformación remota de fotografías.
 6. Registrar la URL, versión, fecha y hash desplegado antes de comenzar las pruebas del iPhone.
 
-Estas instrucciones no autorizan crear repositorios, cuentas, servicios, remotos ni despliegues.
+No se publicará una segunda versión sin autorización expresa independiente.
