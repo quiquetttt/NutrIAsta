@@ -6,6 +6,7 @@ import { UpdateAvailableBanner } from '@/components/update-available-banner';
 import { ActionButton, Card, SectionTitle, StatusPill, palette } from '@/components/ui';
 import { ViabilityScreen } from '@/features/viability/viability-screen.web';
 import { FoodCatalog } from '@/features/foods/food-catalog.web';
+import { DiaryScreen } from '@/features/diary/diary-screen.web';
 import { efsaGeneralReferences, energyScenarios, macroEnergy, maintenanceEstimate, restingEnergyEstimate } from '@/mvp/nutrition-calculations';
 import type { FormulaSex, NutritionTargetDraft, NutritionTargetPeriod, PalValue, Profile, ProfileDraft } from '@/mvp/profile-types';
 import { pwaUpdateController } from '@/pwa/update-controller.web';
@@ -129,7 +130,7 @@ export function MvpScreen() {
               <TabButton label="Alimentos" selected={tab === 'foods'} onPress={() => setTab('foods')}/>
               <TabButton label="Perfil y objetivos" selected={tab === 'profile'} onPress={() => setTab('profile')}/>
             </View>
-            {tab === 'today' ? <TodayEmpty target={targets.at(-1) ?? null}/> : tab === 'foods' ? <FoodCatalog/> : (
+            {tab === 'today' ? <DiaryScreen/> : tab === 'foods' ? <FoodCatalog/> : (
               <>
                 <ProfileEditor draft={profileDraft} setDraft={setProfileDraft} estimates={estimates} busy={busy} onSave={() => run('Perfil actualizado.', () => profileRepository.saveProfile(profileDraft).then(() => undefined))}/>
                 <TargetEditor draft={targetDraft} setDraft={setTargetDraft} targets={targets} estimates={estimates} busy={busy} onSave={() => run('Nuevo periodo de objetivos guardado.', async () => { await profileRepository.addTargetPeriod(targetDraft); })}/>

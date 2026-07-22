@@ -1,5 +1,5 @@
 export const MAIN_DATABASE_NAME = 'nutriasta-main';
-export const MAIN_DATABASE_VERSION = 3;
+export const MAIN_DATABASE_VERSION = 4;
 
 export const MAIN_DATABASE_STORES_V1 = {
   metadata: '&key',
@@ -15,11 +15,20 @@ export const MAIN_DATABASE_STORES_V2 = {
   nutritionTargetPeriods: '&[datasetId+id],datasetId,[datasetId+effectiveFrom],effectiveFrom',
 } as const;
 
-export const MAIN_DATABASE_STORES = {
+export const MAIN_DATABASE_STORES_V3 = {
   ...MAIN_DATABASE_STORES_V2,
   foods: '&[datasetId+id],datasetId,[datasetId+barcode],[datasetId+archived],[datasetId+favorite],updatedAt,lastUsedAt',
   foodPortions: '&[datasetId+id],datasetId,[datasetId+foodId],foodId',
   foodPhotos: '&[datasetId+id],datasetId,[datasetId+foodId],foodId,createdAt',
+} as const;
+
+export const MAIN_DATABASE_STORES = {
+  ...MAIN_DATABASE_STORES_V3,
+  diaryDays: '&[datasetId+date],datasetId,date',
+  mealEntries: '&[datasetId+id],datasetId,[datasetId+date],date,mealType,state',
+  mealItems: '&[datasetId+id],datasetId,[datasetId+mealEntryId],mealEntryId,sourceId,createdAt',
+  waterEntries: '&[datasetId+id],datasetId,[datasetId+date],date,createdAt',
+  trainingDayFlags: '&[datasetId+date],datasetId,date,updatedAt',
 } as const;
 export const MAIN_META_KEYS = {
   activeSource: 'activeSource',

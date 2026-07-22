@@ -16,18 +16,23 @@ afterEach(async () => {
 describe('base paralela del MVP 1', () => {
   it('usa un nombre distinto y un esquema inicial independiente', async () => {
     expect(MAIN_DATABASE_NAME).toBe('nutriasta-main');
-    expect(MAIN_DATABASE_VERSION).toBe(3);
+    expect(MAIN_DATABASE_VERSION).toBe(4);
     expect(Object.keys(MAIN_DATABASE_STORES).sort()).toEqual([
       'datasets',
+      'diaryDays',
       'foodPhotos',
       'foodPortions',
       'foods',
       'legacyViabilityPhotos',
       'legacyViabilityRecords',
+      'mealEntries',
+      'mealItems',
       'metadata',
       'migrationRuns',
       'nutritionTargetPeriods',
       'profiles',
+      'trainingDayFlags',
+      'waterEntries',
     ]);
     database = new NutrIAstaMainDatabase(`main-schema-${crypto.randomUUID()}`);
     await database.open();
