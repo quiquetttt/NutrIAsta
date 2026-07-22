@@ -135,7 +135,7 @@ export function ViabilityScreen() {
             Validación local de instalación, persistencia, fotografía, backup y actualización. No introduzcas datos personales reales.
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            <StatusPill label={`Versión ${APP_VERSION}`} />
+            <StatusPill label={`Versión ${APP_VERSION} — prueba de actualización`} />
             <StatusPill label="IndexedDB · Dexie" />
             <StatusPill label="Sin backend" />
           </View>

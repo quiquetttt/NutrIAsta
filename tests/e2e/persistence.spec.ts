@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 test('persiste el registro ficticio tras recargar', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByText('NutrIAsta')).toBeVisible();
+  await expect(page.getByText('Versión 0.1.1 — prueba de actualización')).toBeVisible();
   const record = page.getByLabel('Texto del registro ficticio');
   await record.click();
   await record.press('Control+A');
