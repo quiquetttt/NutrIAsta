@@ -1,6 +1,7 @@
 import { ScrollView, Text, View } from 'react-native';
 
 import { ActionButton, Card, SectionTitle, StatusPill, palette } from '@/components/ui';
+import { MigrationPanel } from '@/features/migration/migration-panel.native';
 import { VIABILITY_FIXTURE } from '@/preview/viability-fixtures';
 
 export function ViabilityScreen() {
@@ -22,6 +23,7 @@ export function ViabilityScreen() {
         <Text selectable style={{ color: palette.ink, lineHeight: 21 }}>{VIABILITY_FIXTURE.text}</Text>
         <ActionButton label="Guardado no disponible en Expo Go" disabled onPress={() => undefined} />
       </Card>
+      <MigrationPanel />
       <Card>
         <SectionTitle eyebrow="Fixture">Fotografía</SectionTitle>
         <Text selectable style={{ color: palette.muted }}>

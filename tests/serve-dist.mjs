@@ -29,6 +29,13 @@ const mimeTypes = {
 
 createServer((request, response) => {
   const requested = decodeURIComponent((request.url ?? '/').split('?')[0]);
+  if (requested === '/__e2e__/blank') {
+    response.statusCode = 200;
+    response.setHeader('Content-Type', 'text/html; charset=utf-8');
+    response.setHeader('Cache-Control', 'no-store');
+    response.end('<!doctype html><html><body>Preparación E2E</body></html>');
+    return;
+  }
   const safePath = normalize(requested).replace(/^(\.\.[/\\])+/, '');
   let filePath = join(root, safePath === '/' ? 'index.html' : safePath);
   if (!filePath.startsWith(root) || !existsSync(filePath) || statSync(filePath).isDirectory()) {

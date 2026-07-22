@@ -1,14 +1,16 @@
 import type { StorageStatus } from '@/storage/dataset-types';
 import { datasetRepository } from '@/storage/dataset-repository.web';
 
-export async function readStorageStatus(): Promise<StorageStatus> {
+export async function readStorageStatus(lastBackupAtOverride?: string | null): Promise<StorageStatus> {
   const storage = navigator.storage;
   const [persisted, estimate, lastBackupAt] = await Promise.all([
     storage?.persisted ? storage.persisted().catch(() => null) : Promise.resolve(null),
     storage?.estimate
       ? storage.estimate().catch((): StorageEstimate => ({}))
       : Promise.resolve<StorageEstimate>({}),
-    datasetRepository.getLastBackupAt(),
+    lastBackupAtOverride === undefined
+      ? datasetRepository.getLastBackupAt()
+      : Promise.resolve(lastBackupAtOverride),
   ]);
   return {
     persisted,
