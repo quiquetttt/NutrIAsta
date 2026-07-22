@@ -277,8 +277,13 @@ export class MainDatasetRepository {
     const run = await this.getRunByCandidate(datasetId);
     const now = new Date().toISOString();
     await trackWrite(async () => {
-      await this.db.legacyViabilityRecords.where('datasetId').equals(datasetId).delete();
-      await this.db.legacyViabilityPhotos.where('datasetId').equals(datasetId).delete();
+      const datasetTables = [
+        this.db.legacyViabilityRecords, this.db.legacyViabilityPhotos, this.db.profiles,
+        this.db.nutritionTargetPeriods, this.db.foods, this.db.foodPortions, this.db.foodPhotos,
+        this.db.diaryDays, this.db.mealEntries, this.db.mealItems, this.db.waterEntries,
+        this.db.trainingDayFlags, this.db.recipes, this.db.recipeItems,
+      ];
+      for (const table of datasetTables) await table.where('datasetId').equals(datasetId).delete();
       await this.db.transaction('rw', this.db.datasets, this.db.migrationRuns, async () => {
         await this.db.datasets.update(datasetId, {
           state: 'abandoned',

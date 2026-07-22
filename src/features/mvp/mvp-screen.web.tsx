@@ -8,12 +8,14 @@ import { ViabilityScreen } from '@/features/viability/viability-screen.web';
 import { FoodCatalog } from '@/features/foods/food-catalog.web';
 import { DiaryScreen } from '@/features/diary/diary-screen.web';
 import { RecipeManager } from '@/features/recipes/recipe-manager.web';
+import { FullBackupPanel } from '@/features/backup/full-backup-panel.web';
 import { efsaGeneralReferences, energyScenarios, macroEnergy, maintenanceEstimate, restingEnergyEstimate } from '@/mvp/nutrition-calculations';
 import type { FormulaSex, NutritionTargetDraft, NutritionTargetPeriod, PalValue, Profile, ProfileDraft } from '@/mvp/profile-types';
 import { pwaUpdateController } from '@/pwa/update-controller.web';
 import { readStorageStatus, requestPersistentStorage } from '@/pwa/storage-status.web';
 import { mainDatasetRepository } from '@/storage/main-dataset-repository.web';
 import { profileRepository } from '@/storage/profile-repository.web';
+import { fullBackupService } from '@/backup/full-backup-service.web';
 import { APP_VERSION } from '@/storage/schema';
 import type { StorageStatus } from '@/storage/dataset-types';
 
@@ -54,8 +56,9 @@ export function MvpScreen() {
     const active = source === 'main' && Boolean(datasetId);
     setHasMain(active);
     if (active) {
+      const backupStatus = await fullBackupService.status();
       const [nextProfile, nextTargets, nextStorage, snapshot] = await Promise.all([
-        profileRepository.getProfile(), profileRepository.listTargets(), readStorageStatus(null), mainDatasetRepository.getActiveMainSnapshot(),
+        profileRepository.getProfile(), profileRepository.listTargets(), readStorageStatus(backupStatus.lastBackupAt), mainDatasetRepository.getActiveMainSnapshot(),
       ]);
       setProfile(nextProfile);
       setTargets(nextTargets);
@@ -118,7 +121,7 @@ export function MvpScreen() {
           </View>
           <Text selectable style={{ color: '#fff', fontSize: 34, fontWeight: '900' }}>NutrIAsta</Text>
           <Text selectable style={{ color: '#d7e5ee', lineHeight: 22 }}>Registro personal de nutrición. Todos los datos permanecen en este dispositivo.</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}><StatusPill label={`Versión ${APP_VERSION}`} /><StatusPill label="nutriasta-main"/></View>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}><StatusPill label={`Versión ${APP_VERSION} — MVP 1 local`} /><StatusPill label="nutriasta-main"/></View>
         </View>
         <UpdateAvailableBanner visible={updateWaiting} onUpdate={() => void run('Activando actualización…', () => pwaUpdateController.activateWaitingUpdate())}/>
         {error ? <Notice danger text={error}/> : message ? <Notice text={message}/> : null}
@@ -141,7 +144,7 @@ export function MvpScreen() {
             )}
           </>
         )}
-        <Card><Text selectable style={{ color: palette.warning, lineHeight: 20, fontWeight: '700' }}>Los datos nuevos del MVP 1 todavía no están incluidos en un backup completo. Conserva el backup 0.1.1 hasta completar la Fase 5.</Text></Card>
+        <FullBackupPanel onChanged={refresh}/>
         {(legacyText || legacyPhotoUrl) ? <Card><SectionTitle eyebrow="Conservación Fase 0">Datos ficticios heredados</SectionTitle>{legacyText ? <Text accessibilityLabel="Texto del registro ficticio" selectable style={{ color: palette.ink }}>{legacyText}</Text> : null}{legacyPhotoUrl ? <Image accessibilityLabel="Miniatura de la fotografía de prueba" source={{ uri: legacyPhotoUrl }} style={{ width: '100%', aspectRatio: 16 / 10, borderRadius: 16 }}/>: null}<Text selectable style={{ color: palette.muted, fontSize: 13 }}>Solo lectura dentro del dataset principal.</Text></Card> : null}
       </View>
     </ScrollView>

@@ -7,6 +7,7 @@ export async function openMvpWithProfile(page: Page) {
   await page.getByRole('button', { name: 'Preparar copia desde 0.1.1' }).click();
   await page.getByRole('button', { name: 'Activar base paralela' }).click();
   await page.getByRole('button', { name: 'Confirmar migración' }).click();
+  await page.getByText('Migración confirmada. La base 0.1.1 se conserva intacta.').waitFor();
   await page.reload();
   await page.getByLabel('Alias').fill('Persona ficticia');
   await page.getByLabel('Aceptar almacenamiento local').setChecked(true);

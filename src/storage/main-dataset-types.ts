@@ -2,9 +2,9 @@ import type { PhotoAsset, ViabilityRecord } from '@/storage/dataset-types';
 
 export type MainActiveSource = 'legacy' | 'main';
 export type MainDatasetState = 'staging' | 'active' | 'rollback' | 'abandoned';
-export type MainDatasetSource = 'legacy-copy' | 'format-1-backup';
+export type MainDatasetSource = 'legacy-copy' | 'format-1-backup' | 'format-2-backup';
 export type MigrationRunState = 'staging' | 'prepared' | 'activated' | 'rolledBack' | 'confirmed' | 'abandoned';
-export type MigrationSourceKind = 'legacy-database' | 'format-1-backup';
+export type MigrationSourceKind = 'legacy-database' | 'format-1-backup' | 'format-2-backup';
 
 export interface MainMetadataEntry {
   key: string;
@@ -24,6 +24,8 @@ export interface MainDatasetMetadata {
   contentFingerprint: string;
   sourceDatasetId: string;
   sourceBackupId?: string;
+  sourceExportedAt?: string;
+  entityCounts?: Record<string, number>;
   confirmedAt?: string;
 }
 

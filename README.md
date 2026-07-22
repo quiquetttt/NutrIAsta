@@ -1,31 +1,38 @@
-# NutrIAsta — Fase 0 de migración segura
+# NutrIAsta — MVP 1 local (versión 0.2.0)
 
-La prueba de viabilidad 0.1.1 está aprobada. El código local actual implementa exclusivamente la Fase 0 del MVP 1: copiar y verificar los datos ficticios de la base `nutriasta` en la base paralela `nutriasta-main`, con activación, cancelación, rollback, reactivación, recuperación e importación de backups de formato 1. No contiene todavía perfil, nutrición, entrenamientos, inventario, OCR, escáner, Open Food Facts, recetas ni datos personales reales.
+NutrIAsta es una PWA personal en español para registrar perfil, objetivos manuales, alimentos, comidas, agua, planificación y un indicador diario de entrenamiento. Funciona con IndexedDB mediante Dexie y no tiene cuentas, backend, analítica, telemetría ni sincronización.
 
-## Reglas y límites de esta fase
+> Utiliza exclusivamente datos y fotografías ficticios hasta que la versión 0.2.0 supere la prueba física completa en el iPhone. La persistencia de Safari no está garantizada; conserva backups locales recientes.
 
-- El producto de uso diario es exclusivamente la PWA para iPhone con iOS 17 o posterior.
-- Expo Go solo muestra una previsualización de interfaz sin almacenamiento de producción.
-- No hay backend, cuentas, analítica, APIs, telemetría ni transmisión de fotografías.
-- Se debe utilizar exclusivamente información ficticia y fotografías de objetos sin personas, etiquetas privadas ni datos identificables.
-- La persistencia de Safari no está garantizada, incluso si `navigator.storage.persisted()` devuelve `true`.
-- `nutriasta` conserva la versión lógica Dexie 1 —versión nativa IndexedDB 10— y sus cuatro tablas originales. La Fase 0 solo la abre mediante transacciones nativas `readonly`.
-- `nutriasta-main` es una base diferente, también iniciada en versión lógica 1, y recibe todos los candidatos de migración.
-- La implementación local de la Fase 0 no tiene autorización de despliegue. Tampoco se autoriza cambiar la versión 0.1.1.
+## Alcance garantizado
 
-## Entorno requerido
+- Perfil local con alias, edad adulta, sexo de referencia de la fórmula, altura, peso y actividad declarada.
+- Mifflin–St Jeor, PAL elegido manualmente, mantenimiento y escenarios matemáticos de ±5 % y ±10 %. Son orientación general, no consejo médico.
+- Objetivos manuales versionados de calorías, proteínas, carbohidratos, grasas y agua.
+- Catálogo manual de alimentos, porciones, favoritos, recientes, supermercado, fotografía local y prueba técnica EAN sin red.
+- Diario por fecha con desayuno, comida, cena y tentempié; snapshots nutricionales, agua y entrenamiento mínimo sí/no con nota.
+- Recetas manuales, planificación futura, copia de comidas/días y conversión de planificado a consumido sin recalcular el histórico.
+- Backup completo formato 2, ZIP cifrado con AES-256, y restauración mediante dataset temporal, verificación y cambio atómico del puntero activo.
+- Importación de backups de viabilidad formato 1. La base `nutriasta` 0.1.1 se mantiene en versión 1 y solo lectura; el MVP usa `nutriasta-main` con migraciones aditivas hasta versión 5.
+- PWA instalable, apertura offline y actualización controlada sin `skipWaiting` automático.
 
-- Node.js `>=22.13.0`; Expo SDK 57 usa React Native 0.86, React 19.2.3 y React Native Web 0.21.
+Quedan excluidos OCR, Open Food Facts, sugerencia automática de PAL, análisis de fotografías, recomendaciones médicas, nube y cualquier API remota. El lector EAN depende de `BarcodeDetector`: si Safari no lo ofrece, la introducción manual sigue disponible y debe validarse físicamente.
+
+## Entorno y dependencias
+
+- Node.js `>=22.13.0` (validado con Node 24.14.0).
 - npm y las versiones fijadas en `package-lock.json`.
-- Chromium y WebKit administrados por Playwright para las E2E locales.
-- Expo Go es opcional y sirve solamente para revisar componentes y navegación ficticia.
+- Expo SDK 57, React 19.2.3, React Native 0.86 y React Native Web 0.21.
+- Chromium y WebKit instalados por Playwright.
 
-Instalación reproducible desde una copia limpia:
+Instalación reproducible:
 
 ```text
 npm ci
 npx playwright install chromium webkit
 ```
+
+No se añadieron dependencias nuevas durante las fases 1–5. Dexie gestiona IndexedDB y `@zip.js/zip.js` realiza ZIP y AES-256; ambas ya estaban justificadas en la prueba de viabilidad.
 
 ## Validación local reproducible
 
@@ -37,105 +44,75 @@ npm run test:e2e
 npx expo-doctor
 ```
 
-El paquete exacto para el hosting estático se genera con `npm run build:hosting`. Tras publicar una versión autorizada, `npm run verify:deployment -- https://URL` comprueba HTTPS, manifiesto, iconos, política de caché de `sw.js`, control del service worker, apertura offline y orígenes de las solicitudes.
+`npm run test:e2e` elimina y reconstruye `dist`, elige un puerto libre y arranca un servidor exclusivo con `reuseExistingServer: false`. No reutiliza el puerto 4173 ni servidores anteriores.
 
-`npm run build:web` elimina primero la carpeta `dist`, vuelve a exportar la web estática, genera el service worker y verifica automáticamente:
-
-- ancho SSR inicial `width: 100%` y `max-width: 720px`, nunca `width: 0px` en el contenedor principal;
-- manifiesto e iconos PWA;
-- presencia del flujo `SKIP_WAITING` controlado;
-- ausencia de instrucciones para eliminar IndexedDB.
-
-`npm run test:e2e` siempre vuelve a ejecutar esa compilación. Después selecciona un puerto local libre, lo comparte con todos los workers y arranca un servidor exclusivo con `reuseExistingServer: false`. Nunca reutiliza el puerto 4173 ni un servidor anterior o ajeno.
-
-Resultados obtenidos el 22 de julio de 2026 en Windows para la Fase 0:
+Resultados finales locales del 22 de julio de 2026:
 
 - TypeScript: correcto.
-- Vitest: 8 archivos y 26 pruebas correctas.
-- Exportación PWA y verificación de `dist`: correctas.
-- Playwright: 16 pruebas correctas; 2 omisiones justificadas en WebKit para Windows.
-- Expo Doctor: 18/18 comprobaciones correctas con Node 24.14.0.
-- Base 0.1.1: versión, tablas, índices, metadatos, datasets, registros y tamaños de blobs idénticos antes y después de copia, activación, rollback, reactivación y actualización.
+- Vitest: 16 archivos y 39 pruebas correctas.
+- Exportación estática, manifiesto, iconos y service worker: correctos.
+- Playwright: 24 pruebas ejecutables correctas en Chromium/WebKit; 2 omisiones justificadas exclusivamente en WebKit para Windows.
+- Expo Doctor: 18/18 comprobaciones correctas.
+- Privacidad: ninguna petición de producción a terceros y ninguna API remota.
 
-Las dos omisiones son exclusivamente:
+Las dos omisiones son la reapertura offline bajo service worker y la persistencia de un `Blob` fotográfico. Playwright WebKit en Windows no reproduce esas capacidades de Safari de iPhone de forma fiable. No se omiten las pruebas de backup completo, perfil, alimentos, diario, recetas, migración, actualización ni privacidad.
 
-1. Reapertura offline: Playwright WebKit para Windows devuelve un error interno al navegar sin red bajo control de service worker.
-2. Fotografía: Playwright WebKit para Windows no serializa de forma fiable un `Blob` en IndexedDB.
+## Backup completo y restauración segura
 
-Estas mismas pruebas sí se ejecutan en Chromium. En macOS u otras plataformas no se omiten automáticamente, porque la condición está limitada a WebKit sobre Windows. Safari en el iPhone real sigue siendo la validación obligatoria.
+El formato 2 usa la extensión `.nutriasta.zip`, cifra cada entrada con AES-256 y nunca guarda la contraseña. Incluye las 14 tablas de datos del dataset activo y las fotografías como entradas independientes.
 
-Playwright WebKit para Windows tampoco implementa `navigator.storage.estimate()`. Las E2E que prueban la lógica de migración proporcionan únicamente en el entorno de prueba una estimación ficticia y acotada; el código de producción no incluye ese reemplazo. La disponibilidad y los valores reales de Storage API deben volver a comprobarse en el iPhone.
+Antes de escribir en IndexedDB se verifica fuera de cualquier transacción:
 
-## Separación y migración de IndexedDB
+- archivo cifrado de hasta 128 MiB;
+- máximo 502 entradas y 250 pares de fotografía/miniatura;
+- manifiesto de hasta 512 KiB y `data.json` de hasta 16 MiB;
+- cada fotografía hasta 8 MiB y miniatura hasta 1 MiB;
+- contenido descomprimido total hasta 160 MiB;
+- AES obligatorio, rutas permitidas, ausencia de duplicados y archivos no declarados;
+- tamaños ZIP, tamaños del manifiesto, progreso real de descompresión y SHA-256;
+- versión mínima compatible, tablas exactas, recuentos, identificadores y duplicados.
 
-- Origen: `nutriasta`, Dexie 1 / IndexedDB nativa 10, tablas `metadata`, `datasets`, `viabilityRecords` y `photos`.
-- Destino: `nutriasta-main`, Dexie 1 / IndexedDB nativa 10, tablas `metadata`, `datasets`, `migrationRuns`, `legacyViabilityRecords` y `legacyViabilityPhotos`.
-- La huella de origen cubre todos los datasets, metadatos, registros y checksums de fotografías, no solo el dataset activo.
-- La huella se calcula antes y después de copiar. Un cambio concurrente abandona el candidato.
-- La copia se escribe por lotes en `nutriasta-main` y se verifica volviendo a leer blobs y registros.
-- La selección de fuente y dataset se cambia en una sola transacción breve de la base nueva.
-- Confirmar una migración no elimina `nutriasta`.
-- Se exige espacio disponible de `ceil(payload × 1,5) + 10 MiB`. Si la estimación no está disponible, la preparación se detiene.
+La preparación exige espacio adicional de `ceil(payload × 1,5) + 10 MiB`. Escribe un dataset `staging` en lotes cortos, vuelve a leer todos los datos y blobs y recalcula su huella. El dataset activo no cambia hasta la confirmación de activación, que solo actualiza metadatos y estados en una transacción breve. Cancelación, rollback y reactivación conservan el dataset anterior; confirmar no lo elimina automáticamente.
 
-## Backup y restauración
+`minimumAppVersion` es un mínimo semántico `mayor.menor.parche`: una aplicación posterior puede abrir un backup anterior compatible. Los backups de formato 1 siguen importándose por el flujo heredado de Fase 0.
 
-El archivo `.nutriasta` usa ZIP con cifrado AES-256. Su contraseña no se guarda ni puede recuperarse.
+## Actualización y privacidad
 
-Antes de escribir en IndexedDB se comprueban, fuera de cualquier transacción:
+- El service worker no usa `skipWaiting` automáticamente. Muestra un aviso y espera consentimiento.
+- Antes de activar espera escrituras y procesamiento local de fotografías pendientes.
+- El service worker no abre, migra ni elimina IndexedDB.
+- No hay `fetch` de aplicación, CDN, fuentes externas, analítica ni telemetría.
+- Las fotografías y backups se procesan en el dispositivo.
+- Los datos pueden eliminarse en el futuro desde una función explícita; no se realizan limpiezas silenciosas de datasets de recuperación.
 
-- archivo cifrado de hasta 32 MiB;
-- máximo cuatro entradas ZIP y ausencia de rutas desconocidas, duplicadas o inseguras;
-- manifiesto de hasta 128 KiB;
-- registros de hasta 256 KiB;
-- fotografía JPEG de hasta 16 MiB y miniatura de hasta 1 MiB;
-- carga declarada total de hasta 18 MiB;
-- tamaños del directorio ZIP, tamaños declarados en el manifiesto, tamaños realmente extraídos y checksums SHA-256;
-- límites durante el progreso de descompresión para detener contenido expansivo.
+`npm audit` mantiene vulnerabilidades moderadas transitivas de las herramientas nativas de Expo SDK 57 (`@expo/config-plugins`/`xcode`/`uuid`). La solución automática propuesta exige una versión incompatible de Expo. No se ha usado `npm audit fix --force`, no se ha rebajado Expo y `expo-doctor` es correcto. Este riesgo no forma parte del JavaScript que ejecuta la PWA en Safari y queda pendiente de una corrección compatible de Expo.
 
-`minimumAppVersion` representa una versión mínima, no una igualdad exacta. Las versiones se comparan numéricamente como `mayor.menor.parche`: una aplicación posterior puede abrir un backup anterior, mientras que una versión demasiado antigua rechaza el archivo antes de importarlo. La Fase 0 admite nombres `.nutriasta`, `.zip` y `.nutriasta.zip` sin confiar en el MIME del archivo.
+## Pruebas físicas obligatorias en Safari/iPhone
 
-Tras validar el contenido, la restauración escribe un dataset temporal en lotes. Solo cambia `activeDatasetId` en una transacción breve y atómica. El dataset anterior se conserva para cancelación o rollback.
+Estas pruebas requieren un despliegue HTTPS autorizado por separado en el mismo origen. No hay ningún despliegue autorizado por este commit.
 
-## Actualizaciones PWA
+1. Antes de actualizar, guardar un backup completo de los datos ficticios actuales y conservar también el backup 0.1.1.
+2. Abrir la PWA instalada y comprobar que la versión anterior no se actualiza sola; aceptar la actualización solo desde el aviso.
+3. Confirmar `Versión 0.2.0 — MVP 1 local`, el texto y fotografía ficticios heredados y los valores de almacenamiento.
+4. Crear un perfil totalmente ficticio y varios periodos de objetivos; cerrar, forzar cierre, reiniciar y comprobarlos.
+5. Crear alimentos ficticios con g/ml, porción, supermercado, favorito, foto de objeto y EAN manual; comprobar duplicados, edición y archivo.
+6. Probar `BarcodeDetector` con un código ficticio o de prueba. Registrar si Safari no lo ofrece y confirmar que el formulario manual funciona.
+7. Registrar comidas, cantidades, agua y entrenamiento ficticio en fechas pasada, actual y futura. Editar después el alimento y los objetivos y confirmar que el histórico no cambia.
+8. Crear una receta ficticia, planificarla, copiarla a otra fecha y convertirla a consumida. Reiniciar y repetir la lectura offline.
+9. Exportar el backup completo con contraseña ficticia y guardarlo en “En mi iPhone”. Confirmar la fecha de último backup.
+10. Modificar perfil, alimento, diario, agua, receta y fotografía. Intentar restaurar con contraseña incorrecta y comprobar que nada cambia.
+11. Preparar con la contraseña correcta, cancelar y comprobar el dataset original. Repetir, activar y verificar el contenido exportado.
+12. Hacer rollback y comprobar todos los cambios posteriores; reactivar el candidato y confirmar. Cerrar, reiniciar y abrir en modo avión.
+13. Confirmar que la base `nutriasta` 0.1.1 sigue disponible e intacta y que no existe tráfico a terceros.
 
-- El service worker no activa `skipWaiting` automáticamente.
-- Una versión preparada espera la confirmación del usuario.
-- Antes de activarse espera tanto las escrituras IndexedDB como el procesamiento local de una fotografía que todavía no haya llegado a la escritura.
-- IndexedDB no forma parte del precaché y el service worker no contiene ninguna eliminación de la base.
+Si se pierde un dato, se activa una actualización sola, aparece tráfico externo, falla la huella, no hay espacio suficiente o el backup no puede mantener simultáneamente el dataset activo y el candidato, la prueba debe detenerse sin desplegar otra versión.
 
-## Riesgo pendiente de dependencias
+## Futuro despliegue HTTPS — no ejecutar sin autorización
 
-`npm audit` informa actualmente de 10 vulnerabilidades moderadas transitivas en la cadena de herramientas de Expo 57: `expo` → `@expo/config-plugins` → `xcode` → `uuid`, además de paquetes de configuración relacionados. La corrección propuesta por npm rebajaría Expo a 46.0.21, lo que es incompatible con este proyecto.
+1. Obtener autorización expresa para el commit y la versión exactos.
+2. Verificar árbol limpio, Node compatible y ejecutar toda la validación anterior.
+3. Ejecutar `npm run build:hosting` y publicar únicamente el contenido estático generado.
+4. Mantener el mismo origen privado, servir `sw.js` sin caché HTTP prolongada y no añadir servicios externos.
+5. Ejecutar `npm run verify:deployment -- https://URL` y registrar URL, hash y fecha.
 
-Se actualizaron únicamente los parches esperados por SDK 57: Expo 57.0.8, expo-constants 57.0.7, expo-linking 57.0.4, expo-router 57.0.8 y react-native-screens 4.26.2. `npx expo-doctor` termina correctamente. No se ha usado `npm audit fix --force`, no se ha aplicado un `override` inseguro y no se ha rebajado Expo. El riesgo queda documentado hasta que Expo publique una corrección compatible con SDK 57; la dependencia vulnerable pertenece a herramientas de configuración nativa y no al código ejecutado por la PWA en Safari.
-
-## Pruebas obligatorias de la Fase 0 en Safari/iPhone
-
-Estas pruebas solo podrán comenzar después de autorizar separadamente un despliegue en el mismo origen HTTPS:
-
-1. Antes de actualizar, abrir la 0.1.1 actual, confirmar el registro y fotografía ficticios y guardar un backup reciente como `.nutriasta.zip` en “En mi iPhone”.
-2. Recibir la futura compilación de Fase 0 mediante el aviso controlado y comprobar que no se activa sola.
-3. Tras pulsar actualizar, confirmar que aparecen `nutriasta · solo lectura` y `nutriasta-main · paralela` sin cambiar el texto ni la fotografía.
-4. Revisar que persistencia, uso y cuota tienen valores reales. Si uso o cuota aparecen como no disponibles, detener la migración.
-5. Pulsar `Preparar copia desde 0.1.1` y comprobar que la fuente sigue siendo `nutriasta 0.1.1`.
-6. Cerrar y reabrir antes de activar; verificar que el candidato preparado y los datos siguen disponibles.
-7. Activar la base paralela y comprobar que texto y fotografía son exactamente los mismos.
-8. Cerrar, forzar cierre, reiniciar el iPhone y repetir la comprobación en modo avión.
-9. Pulsar `Volver a 0.1.1`, comprobar los datos, reactivar la base paralela y confirmar la migración.
-10. Importar el backup formato 1 con contraseña incorrecta; verificar que nada cambia.
-11. Importarlo con contraseña correcta, cancelar y comprobar que la fuente activa no cambia.
-12. Repetir la importación, activar, hacer rollback y reactivar.
-13. Confirmar que no aparece tráfico externo y que la PWA continúa abriendo offline.
-
-La superación de estas pruebas solo demuestra el comportamiento del iPhone probado; iOS puede eliminar almacenamiento web posteriormente.
-
-## Despliegue HTTPS
-
-1. Obtener autorización expresa para cada versión que se vaya a publicar. La Fase 0 local actual no está autorizada para despliegue.
-2. Ejecutar `npm ci`, la validación completa y `npm run build:hosting` en un entorno limpio.
-3. Publicar exclusivamente el paquete estático generado bajo el mismo origen HTTPS estable.
-4. Servir `manifest.webmanifest` con un tipo MIME apropiado y `sw.js` sin caché HTTP prolongada.
-5. No añadir analítica, cabeceras que envíen datos a terceros, APIs ni transformación remota de fotografías.
-6. Registrar la URL, versión, fecha y hash desplegado antes de comenzar las pruebas del iPhone.
-
-No se publicará una segunda versión sin autorización expresa independiente.
+No se debe crear repositorio remoto, hacer push ni desplegar una nueva versión sin una autorización independiente.

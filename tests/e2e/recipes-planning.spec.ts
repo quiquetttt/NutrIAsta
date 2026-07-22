@@ -33,6 +33,6 @@ test('crea una receta, la planifica y conserva su snapshot al consumirla', async
   await expect(page.getByText(/150.0 \/ 0.0 kcal/)).toBeVisible();
   await page.reload();
   await page.getByLabel('Fecha del diario').fill('2099-08-01');
-  await expect(page.getByText('Receta ficticia', { exact: true })).toBeVisible();
+  await expect(page.getByText('Receta ficticia', { exact: true }).last()).toBeVisible();
   await expect(page.getByText('Consumido', { exact: true })).toBeVisible();
 });

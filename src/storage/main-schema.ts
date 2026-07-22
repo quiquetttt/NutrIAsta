@@ -44,4 +44,5 @@ export const MAIN_META_KEYS = {
   migrationPreviousMainDatasetId: 'migrationPreviousMainDatasetId',
   migrationRunId: 'migrationRunId',
   migrationPhase: 'migrationPhase',
+  lastFullBackupAt: 'lastFullBackupAt',
 } as const;
