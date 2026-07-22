@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "NutrIAsta",
+    "slug": "nutriasta",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./public/icons/icon-512.png",
+    "scheme": "nutriasta",
+    "userInterfaceStyle": "automatic",
+    "ios": {},
+    "android": {},
+    "web": {
+      "output": "static",
+      "favicon": "./public/icons/icon-192.png"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
