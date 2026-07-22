@@ -11,4 +11,4 @@ export interface MealItem { datasetId: string; id: string; mealEntryId: string; 
 export interface NutritionTotals { energyKcal: number; proteinG: number; carbohydratesG: number; fatG: number; }
 export interface WaterEntry { datasetId: string; id: string; date: string; amountMl: number; createdAt: string; updatedAt: string; }
 export interface TrainingDayFlag { datasetId: string; date: string; trained: boolean; trainingType: string; note: string; updatedAt: string; }
-export interface DiaryView { day: DiaryDay; meals: Array<MealEntry & { items: MealItem[]; totals: NutritionTotals }>; water: WaterEntry[]; training: TrainingDayFlag | null; totals: NutritionTotals; }
+export interface DiaryView { day: DiaryDay; meals: Array<MealEntry & { items: MealItem[]; totals: NutritionTotals }>; water: WaterEntry[]; training: TrainingDayFlag | null; totals: NutritionTotals; plannedTotals: NutritionTotals; }

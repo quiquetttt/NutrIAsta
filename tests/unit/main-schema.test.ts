@@ -16,7 +16,7 @@ afterEach(async () => {
 describe('base paralela del MVP 1', () => {
   it('usa un nombre distinto y un esquema inicial independiente', async () => {
     expect(MAIN_DATABASE_NAME).toBe('nutriasta-main');
-    expect(MAIN_DATABASE_VERSION).toBe(4);
+    expect(MAIN_DATABASE_VERSION).toBe(5);
     expect(Object.keys(MAIN_DATABASE_STORES).sort()).toEqual([
       'datasets',
       'diaryDays',
@@ -31,6 +31,8 @@ describe('base paralela del MVP 1', () => {
       'migrationRuns',
       'nutritionTargetPeriods',
       'profiles',
+      'recipeItems',
+      'recipes',
       'trainingDayFlags',
       'waterEntries',
     ]);

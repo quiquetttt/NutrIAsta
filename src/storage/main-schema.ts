@@ -1,5 +1,5 @@
 export const MAIN_DATABASE_NAME = 'nutriasta-main';
-export const MAIN_DATABASE_VERSION = 4;
+export const MAIN_DATABASE_VERSION = 5;
 
 export const MAIN_DATABASE_STORES_V1 = {
   metadata: '&key',
@@ -22,13 +22,19 @@ export const MAIN_DATABASE_STORES_V3 = {
   foodPhotos: '&[datasetId+id],datasetId,[datasetId+foodId],foodId,createdAt',
 } as const;
 
-export const MAIN_DATABASE_STORES = {
+export const MAIN_DATABASE_STORES_V4 = {
   ...MAIN_DATABASE_STORES_V3,
   diaryDays: '&[datasetId+date],datasetId,date',
   mealEntries: '&[datasetId+id],datasetId,[datasetId+date],date,mealType,state',
   mealItems: '&[datasetId+id],datasetId,[datasetId+mealEntryId],mealEntryId,sourceId,createdAt',
   waterEntries: '&[datasetId+id],datasetId,[datasetId+date],date,createdAt',
   trainingDayFlags: '&[datasetId+date],datasetId,date,updatedAt',
+} as const;
+
+export const MAIN_DATABASE_STORES = {
+  ...MAIN_DATABASE_STORES_V4,
+  recipes: '&[datasetId+id],datasetId,[datasetId+favorite],[datasetId+archived],updatedAt',
+  recipeItems: '&[datasetId+id],datasetId,[datasetId+recipeId],recipeId,foodId',
 } as const;
 export const MAIN_META_KEYS = {
   activeSource: 'activeSource',

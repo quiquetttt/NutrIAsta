@@ -1,0 +1,19 @@
+import { calculateFromSnapshot, sumNutrition } from '@/mvp/diary-calculations';
+import type { NutritionSnapshot } from '@/mvp/diary-types';
+import type { Recipe, RecipeItem, RecipeWithTotals } from '@/mvp/recipe-types';
+import { mainDatabase, type NutrIAstaMainDatabase } from '@/storage/main-database.web';
+import { MAIN_META_KEYS } from '@/storage/main-schema';
+import { trackWrite } from '@/storage/write-tracker';
+import { createId } from '@/utils/crypto';
+
+export class RecipeRepository{
+ constructor(private readonly db:NutrIAstaMainDatabase=mainDatabase){}
+ private async datasetId(){await this.db.open();const source=(await this.db.metadata.get(MAIN_META_KEYS.activeSource))?.value;const id=(await this.db.metadata.get(MAIN_META_KEYS.activeMainDatasetId))?.value;if(source!=='main'||typeof id!=='string')throw new Error('No existe un dataset principal activo.');return id;}
+ async list(includeArchived=false):Promise<RecipeWithTotals[]>{const datasetId=await this.datasetId();const recipes=(await this.db.recipes.where('datasetId').equals(datasetId).toArray()).filter((recipe)=>includeArchived||!recipe.archived);const result=[];for(const recipe of recipes.sort((a,b)=>a.name.localeCompare(b.name,'es'))){const items=await this.db.recipeItems.where('[datasetId+recipeId]').equals([datasetId,recipe.id]).toArray();const totals=sumNutrition(items.map((item)=>item.calculated));result.push({...recipe,items,totals,perServing:divide(totals,recipe.servings)});}return result;}
+ async get(id:string){return (await this.list(true)).find((recipe)=>recipe.id===id);}
+ async save(name:string,servings:number,finalWeightG:number|null,ingredients:Array<{foodId:string;amountBase:number}>,favorite=false,id?:string){if(!name.trim()||name.length>120)throw new Error('Introduce un nombre de receta válido.');if(!Number.isFinite(servings)||servings<=0)throw new Error('Las porciones deben ser mayores que cero.');if(ingredients.length===0)throw new Error('Añade al menos un ingrediente.');const datasetId=await this.datasetId();const now=new Date().toISOString();const previous=id?await this.db.recipes.get([datasetId,id]):undefined;const recipeId=id??createId('recipe');const recipe:Recipe={datasetId,id:recipeId,name:name.trim(),servings,finalWeightG:finalWeightG&&finalWeightG>0?finalWeightG:null,favorite,archived:previous?.archived??false,createdAt:previous?.createdAt??now,updatedAt:now};const items:RecipeItem[]=[];for(const ingredient of ingredients){const food=await this.db.foods.get([datasetId,ingredient.foodId]);if(!food)throw new Error('Uno de los alimentos ya no existe.');const snapshot:NutritionSnapshot={name:food.name,energyKcal:food.energyKcal,proteinG:food.proteinG,carbohydratesG:food.carbohydratesG,fatG:food.fatG,baseUnit:food.baseUnit,sourceUpdatedAt:food.updatedAt};items.push({datasetId,id:createId('recipe-item'),recipeId,foodId:food.id,amountBase:ingredient.amountBase,foodSnapshot:snapshot,calculated:calculateFromSnapshot(snapshot,ingredient.amountBase)});}await trackWrite(()=>this.db.transaction('rw',this.db.recipes,this.db.recipeItems,async()=>{await this.db.recipes.put(recipe);await this.db.recipeItems.where('[datasetId+recipeId]').equals([datasetId,recipeId]).delete();await this.db.recipeItems.bulkAdd(items);}));return recipe;}
+ async setFavorite(id:string,favorite:boolean){const datasetId=await this.datasetId();await trackWrite(()=>this.db.recipes.update([datasetId,id],{favorite,updatedAt:new Date().toISOString()}));}
+ async setArchived(id:string,archived:boolean){const datasetId=await this.datasetId();await trackWrite(()=>this.db.recipes.update([datasetId,id],{archived,updatedAt:new Date().toISOString()}));}
+}
+function divide(value:{energyKcal:number;proteinG:number;carbohydratesG:number;fatG:number},by:number){return{energyKcal:value.energyKcal/by,proteinG:value.proteinG/by,carbohydratesG:value.carbohydratesG/by,fatG:value.fatG/by};}
+export const recipeRepository=new RecipeRepository();
