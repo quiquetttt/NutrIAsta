@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { readLegacyState, seedLegacyDatabase } from './legacy-fixture';
-import { openMvpWithProfile } from './mvp-fixture';
+import { openMvpSection, openMvpWithProfile } from './mvp-fixture';
 
 test('copia y conserva una fotografía ficticia sin modificar el origen', async ({ browserName, page }) => {
   test.skip(
@@ -26,7 +26,7 @@ test('muestra, sustituye y elimina una fotografía local sin borrar el alimento'
     'Playwright WebKit para Windows no serializa Blob de imágenes en IndexedDB; este flujo se valida físicamente en Safari/iPhone.',
   );
   await openMvpWithProfile(page);
-  await page.getByRole('tab', { name: 'Alimentos' }).click();
+  await openMvpSection(page, 'Alimentos');
   await page.getByRole('button', { name: 'Añadir alimento' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Etiqueta ficticia E2E');
   await page.getByLabel('Energía (kcal)').fill('100');
@@ -43,7 +43,7 @@ test('muestra, sustituye y elimina una fotografía local sin borrar el alimento'
   expect((await storedFoodPhotoMetadata(page))!.size).toBeLessThanOrEqual(4 * 1024 * 1024);
 
   await page.reload();
-  await page.getByRole('tab', { name: 'Alimentos' }).click();
+  await openMvpSection(page, 'Alimentos');
   await expect(page.getByLabel('Fotografía de Etiqueta ficticia E2E')).toBeVisible();
   await page.getByRole('button', { name: 'Editar Etiqueta ficticia E2E' }).click();
   await expect(page.getByLabel('Vista previa de la etiqueta')).toBeVisible();

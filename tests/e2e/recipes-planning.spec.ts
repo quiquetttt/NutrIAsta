@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { openMvpWithProfile } from './mvp-fixture';
+import { openMvpSection, openMvpWithProfile } from './mvp-fixture';
 
 test('crea una receta, la planifica y conserva su snapshot al consumirla', async ({ page }) => {
   await openMvpWithProfile(page);
-  await page.getByRole('tab', { name: 'Alimentos' }).click();
+  await openMvpSection(page, 'Alimentos');
   await page.getByRole('button', { name: 'Añadir alimento' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Ingrediente ficticio');
   await page.getByLabel('Energía (kcal)').fill('300');
@@ -12,7 +12,7 @@ test('crea una receta, la planifica y conserva su snapshot al consumirla', async
   await page.getByLabel('Grasas (g)').fill('8');
   await page.getByRole('button', { name: 'Guardar alimento' }).click();
 
-  await page.getByRole('tab', { name: 'Recetas' }).click();
+  await openMvpSection(page, 'Recetas');
   await page.getByRole('button', { name: 'Crear receta' }).click();
   await page.getByLabel('Nombre de receta').fill('Receta ficticia');
   await page.getByLabel('Número de porciones').fill('2');
@@ -23,7 +23,7 @@ test('crea una receta, la planifica y conserva su snapshot al consumirla', async
   await expect(page.getByText('Receta guardada localmente.')).toBeVisible();
   await expect(page.getByText(/por porción: 150.0 kcal/)).toBeVisible();
 
-  await page.getByRole('tab', { name: 'Hoy' }).click();
+  await openMvpSection(page, 'Hoy');
   await page.getByLabel('Fecha del diario').fill('2099-08-01');
   await page.getByRole('radio', { name: 'Gramos (peso final 200 g)' }).click();
   await page.getByLabel('Gramos de receta').fill('100');

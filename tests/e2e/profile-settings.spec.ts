@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 
 import { readLegacyState } from './legacy-fixture';
-import { openMvpWithProfile } from './mvp-fixture';
+import { openMvpSection, openMvpWithProfile } from './mvp-fixture';
 
 test('explica la estimación y no la copia a un objetivo sin confirmación explícita', async ({ page }) => {
   await openMvpWithProfile(page);
-  await page.getByRole('tab', { name: 'Perfil y objetivos' }).click();
+  await openMvpSection(page, 'Perfil y objetivos');
   await expect(page.getByText('Fórmula de Mifflin–St Jeor')).toBeVisible();
   await expect(page.getByText(/10 × peso .* 6,25 × altura .* − 5 × edad/)).toBeVisible();
   await expect(page.getByText(/Entradas usadas: 70 kg · 175 cm · 22 años · PAL/)).toBeVisible();
@@ -33,26 +33,26 @@ test('explica la estimación y no la copia a un objetivo sin confirmación expl�
 test('configura agua y cancela o confirma el borrado sin tocar la base histórica', async ({ page }) => {
   await openMvpWithProfile(page);
   const legacyBefore = await readLegacyState(page);
-  await page.getByRole('tab', { name: 'Ajustes y privacidad' }).click();
+  await openMvpSection(page, 'Ajustes y privacidad');
   await expect(page.getByText('Último backup completo: ninguno.')).toBeVisible();
   await page.getByLabel('Accesos rápidos de agua').fill('300, 600');
   await page.getByRole('button', { name: 'Guardar accesos rápidos de agua' }).click();
   await expect(page.getByText('Accesos rápidos de agua actualizados.')).toBeVisible();
   await page.reload();
-  await page.getByRole('tab', { name: 'Hoy' }).click();
+  await openMvpSection(page, 'Hoy');
   await expect(page.getByRole('button', { name: '+300 ml' })).toBeVisible();
   await expect(page.getByRole('button', { name: '+600 ml' })).toBeVisible();
   await expect(page.getByRole('button', { name: '+250 ml' })).toHaveCount(0);
 
-  await page.getByRole('tab', { name: 'Ajustes y privacidad' }).click();
+  await openMvpSection(page, 'Ajustes y privacidad');
   await page.getByLabel('Confirmación para eliminar todos mis datos').fill('ELIMINAR');
   page.once('dialog', (dialog) => dialog.dismiss());
   await page.getByRole('button', { name: 'Eliminar todos mis datos' }).click();
   await expect(page.getByText('Eliminación cancelada. No se ha modificado ningún dato.')).toBeVisible();
-  await page.getByRole('tab', { name: 'Perfil y objetivos' }).click();
+  await openMvpSection(page, 'Perfil y objetivos');
   await expect(page.getByLabel('Alias')).toHaveValue('Persona ficticia');
 
-  await page.getByRole('tab', { name: 'Ajustes y privacidad' }).click();
+  await openMvpSection(page, 'Ajustes y privacidad');
   await page.getByLabel('Confirmación para eliminar todos mis datos').fill('ELIMINAR');
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Eliminar todos mis datos' }).click();

@@ -12,5 +12,21 @@ export async function openMvpWithProfile(page: Page, options: { withPhoto?: bool
   await page.getByLabel('Alias').fill('Persona ficticia');
   await page.getByLabel('Aceptar almacenamiento local').setChecked(true);
   await page.getByRole('button', { name: 'Crear perfil local' }).click();
-  await page.getByRole('tab', { name: 'Hoy' }).waitFor();
+  await page.locator('.na-nav-item:visible').filter({ hasText: /^Hoy$/ }).first().waitFor();
+}
+
+export async function openMvpSection(
+  page: Page,
+  section: 'Hoy' | 'Diario' | 'Alimentos' | 'Recetas' | 'Entrenar' | 'Inventario' | 'Perfil y objetivos' | 'Ajustes y privacidad',
+) {
+  const primary = section === 'Alimentos' || section === 'Recetas' || section === 'Diario'
+    ? 'Diario'
+    : section === 'Perfil y objetivos' || section === 'Ajustes y privacidad'
+      ? 'Perfil'
+      : section;
+  await page.locator('.na-nav-item:visible').filter({ hasText: new RegExp(`^${primary}$`) }).first().click();
+  if (section === 'Alimentos' || section === 'Recetas' || section === 'Diario'
+    || section === 'Perfil y objetivos' || section === 'Ajustes y privacidad') {
+    await page.getByRole('tab', { name: section, exact: true }).click();
+  }
 }

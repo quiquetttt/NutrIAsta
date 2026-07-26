@@ -1,13 +1,13 @@
 import { expect, test } from '@playwright/test';
-import { openMvpWithProfile } from './mvp-fixture';
+import { openMvpSection, openMvpWithProfile } from './mvp-fixture';
 
 test('usa porciones, agrupa alimentos, edita y mueve elementos y conserva agua y entrenamiento', async ({ page }) => {
   await openMvpWithProfile(page);
-  await page.getByRole('tab', { name: 'Alimentos' }).click();
+  await openMvpSection(page, 'Alimentos');
   await createFood(page, 'Diario ficticio', 200, 'Bol ficticio', 75);
   await createFood(page, 'Segundo diario ficticio', 100);
 
-  await page.getByRole('tab', { name: 'Hoy' }).click();
+  await openMvpSection(page, 'Hoy');
   await page.getByRole('radio', { name: 'Diario ficticio', exact: true }).click();
   await page.getByRole('radio', { name: 'Porción guardada' }).click();
   await expect(page.getByRole('radio', { name: /Bol ficticio · 75 g/ })).toBeVisible();
@@ -55,7 +55,7 @@ test('usa porciones, agrupa alimentos, edita y mueve elementos y conserva agua y
 
 test('la interfaz no ofrece g para alimentos en ml ni ml para alimentos en g', async ({ page }) => {
   await openMvpWithProfile(page);
-  await page.getByRole('tab', { name: 'Alimentos' }).click();
+  await openMvpSection(page, 'Alimentos');
   await createFood(page, 'Sólido ficticio', 100);
   await page.getByRole('button', { name: 'Añadir alimento' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Bebida ficticia');
@@ -63,7 +63,7 @@ test('la interfaz no ofrece g para alimentos en ml ni ml para alimentos en g', a
   await page.getByLabel('Energía (kcal)').fill('40');
   await page.getByRole('button', { name: 'Guardar alimento' }).click();
 
-  await page.getByRole('tab', { name: 'Hoy' }).click();
+  await openMvpSection(page, 'Hoy');
   await page.getByRole('radio', { name: 'Sólido ficticio', exact: true }).click();
   await expect(page.getByRole('radio', { name: 'Gramos' })).toBeVisible();
   await expect(page.getByRole('radio', { name: 'Mililitros' })).toHaveCount(0);

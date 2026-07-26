@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 
-import { StorageStatusCard } from '@/components/storage-status-card';
+import { AppShell, type AppDestination } from '@/components/app-shell.web';
 import { UpdateAvailableBanner } from '@/components/update-available-banner';
 import { ActionButton, Card, SectionTitle, StatusPill, palette } from '@/components/ui';
 import { ViabilityScreen } from '@/features/viability/viability-screen.web';
@@ -20,7 +20,9 @@ import { fullBackupService } from '@/backup/full-backup-service.web';
 import { APP_VERSION } from '@/storage/schema';
 import type { StorageStatus } from '@/storage/dataset-types';
 
-type Tab = 'today' | 'foods' | 'recipes' | 'profile' | 'settings';
+type Tab = AppDestination;
+type DiaryView = 'diary' | 'foods' | 'recipes';
+type ProfileView = 'profile' | 'settings';
 const todayMadrid = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(new Date());
 const EMPTY_STORAGE: StorageStatus = { persisted: null, usage: null, quota: null, lastBackupAt: null };
 
@@ -51,6 +53,8 @@ export function MvpScreen() {
   const [targets, setTargets] = useState<NutritionTargetPeriod[]>([]);
   const [targetDraft, setTargetDraft] = useState<NutritionTargetDraft>(EMPTY_TARGET);
   const [tab, setTab] = useState<Tab>('today');
+  const [diaryView, setDiaryView] = useState<DiaryView>('diary');
+  const [profileView, setProfileView] = useState<ProfileView>('profile');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -121,61 +125,94 @@ export function MvpScreen() {
   if (!ready) return <Loading />;
   if (!hasMain) return <ViabilityScreen />;
 
-  return (
-    <ScrollView contentInsetAdjustmentBehavior="automatic" style={{ flex: 1, backgroundColor: palette.background }} contentContainerStyle={{ alignItems: 'center', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 64 }}>
-      <View testID="mvp-content" style={{ width: '100%', maxWidth: 720, alignSelf: 'center', gap: 16 }}>
-        <View style={{ backgroundColor: palette.navy, borderRadius: 28, padding: 22, gap: 12, boxShadow: '0 18px 50px rgba(7,26,47,.16)' }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-            <StatusPill label="MVP 1 · LOCAL" tone="good"/><StatusPill label={online ? 'Online' : 'Offline'} tone={online ? 'neutral' : 'warning'}/>
+  if (!profile) {
+    return (
+      <ScrollView contentInsetAdjustmentBehavior="automatic" style={{ flex: 1, backgroundColor: palette.background }} contentContainerStyle={{ alignItems: 'center', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 64 }}>
+        <View testID="mvp-content" style={{ width: '100%', maxWidth: 720, alignSelf: 'center', gap: 16 }}>
+          <View style={{ backgroundColor: palette.navy, borderRadius: 28, padding: 22, gap: 12, boxShadow: '0 18px 50px rgba(7,26,47,.16)' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+              <StatusPill label="DATOS LOCALES" tone="good"/><StatusPill label={online ? 'Online' : 'Offline'} tone={online ? 'neutral' : 'warning'}/>
+            </View>
+            <Image accessibilityIgnoresInvertColors source={{ uri: '/icons/icon-192.png' }} style={{ width: 64, height: 64, borderRadius: 16 }}/>
+            <Text selectable style={{ color: '#fff', fontSize: 34, fontWeight: '900' }}>NutrIAsta</Text>
+            <Text selectable style={{ color: '#d7e5ee', lineHeight: 22 }}>Configura tu perfil local para comenzar. Tus datos permanecen en este dispositivo.</Text>
+            <StatusPill label="nutriasta-main"/>
           </View>
-          <Text selectable style={{ color: '#fff', fontSize: 34, fontWeight: '900' }}>NutrIAsta</Text>
-          <Text selectable style={{ color: '#d7e5ee', lineHeight: 22 }}>Registro personal de nutrición. Todos los datos permanecen en este dispositivo.</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}><StatusPill label={`Versión ${APP_VERSION} — MVP 1 local`} /><StatusPill label="nutriasta-main"/></View>
+          {error ? <Notice danger text={error}/> : message ? <Notice text={message}/> : null}
+          <ProfileEditor draft={profileDraft} setDraft={setProfileDraft} estimates={estimates} activeTarget={activeTarget} busy={busy} onboarding onSave={() => run('Perfil local guardado.', async () => { await profileRepository.saveProfile(profileDraft); setTab('profile'); })}/>
+          {(legacyText || legacyPhotoUrl) ? <Card><SectionTitle eyebrow="Conservación Fase 0">Datos ficticios heredados</SectionTitle>{legacyText ? <Text accessibilityLabel="Texto del registro ficticio" selectable style={{ color: palette.ink }}>{legacyText}</Text> : null}{legacyPhotoUrl ? <Image accessibilityLabel="Miniatura de la fotografía de prueba" source={{ uri: legacyPhotoUrl }} style={{ width: '100%', aspectRatio: 16 / 10, borderRadius: 16 }}/>: null}<Text selectable style={{ color: palette.muted, fontSize: 13 }}>Solo lectura dentro del dataset principal.</Text></Card> : null}
         </View>
+      </ScrollView>
+    );
+  }
+
+  return (
+    <AppShell destination={tab} onNavigate={setTab} online={online} pending={busy} version={APP_VERSION}>
+      <View testID="mvp-content" style={{ width: '100%', gap: 16 }}>
         <UpdateAvailableBanner visible={updateWaiting} onUpdate={() => void run('Activando actualización…', () => pwaUpdateController.activateWaitingUpdate())}/>
         {error ? <Notice danger text={error}/> : message ? <Notice text={message}/> : null}
-        {!profile ? (
-          <ProfileEditor draft={profileDraft} setDraft={setProfileDraft} estimates={estimates} activeTarget={activeTarget} busy={busy} onboarding onSave={() => run('Perfil local guardado.', async () => { await profileRepository.saveProfile(profileDraft); setTab('profile'); })}/>
-        ) : (
+        {tab === 'today' ? <DiaryScreen/> : null}
+        {tab === 'diary' ? (
           <>
-            <View accessibilityRole="tablist" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              <TabButton label="Hoy" selected={tab === 'today'} onPress={() => setTab('today')}/>
-              <TabButton label="Alimentos" selected={tab === 'foods'} onPress={() => setTab('foods')}/>
-              <TabButton label="Recetas" selected={tab === 'recipes'} onPress={() => setTab('recipes')}/>
-              <TabButton label="Perfil y objetivos" selected={tab === 'profile'} onPress={() => setTab('profile')}/>
-              <TabButton label="Ajustes y privacidad" selected={tab === 'settings'} onPress={() => setTab('settings')}/>
-            </View>
-            {tab === 'today' ? <DiaryScreen/> : tab === 'foods' ? <FoodCatalog/> : tab === 'recipes' ? <RecipeManager/> : tab === 'profile' ? (
-              <>
+            <SectionNavigation
+              current={diaryView}
+              items={[['diary', 'Diario'], ['foods', 'Alimentos'], ['recipes', 'Recetas']]}
+              onSelect={(value) => setDiaryView(value as DiaryView)}
+            />
+            {diaryView === 'diary' ? <DiaryScreen/> : diaryView === 'foods' ? <FoodCatalog/> : <RecipeManager/>}
+          </>
+        ) : null}
+        {tab === 'training' ? (
+          <EmptySection
+            eyebrow="PRÓXIMA FASE"
+            title="Tu entrenamiento, en el mismo registro"
+            text="Aquí aparecerán el calendario mensual, el objetivo semanal y las sesiones. La Fase 1 solo integra la navegación aprobada."
+          />
+        ) : null}
+        {tab === 'inventory' ? (
+          <EmptySection
+            eyebrow="PRÓXIMA FASE"
+            title="Inventario y lista de la compra"
+            text="Este acceso ya forma parte de la navegación. Los saldos y movimientos se implementarán de forma atómica en su fase funcional."
+          />
+        ) : null}
+        {tab === 'profile' ? (
+          <>
+            <SectionNavigation
+              current={profileView}
+              items={[['profile', 'Perfil y objetivos'], ['settings', 'Ajustes y privacidad']]}
+              onSelect={(value) => setProfileView(value as ProfileView)}
+            />
+            <View style={{ display: profileView === 'profile' ? 'flex' : 'none', gap: 16 }}>
                 <ProfileEditor draft={profileDraft} setDraft={setProfileDraft} estimates={estimates} activeTarget={activeTarget} busy={busy} onSave={() => run('Perfil actualizado.', () => profileRepository.saveProfile(profileDraft).then(() => undefined))}/>
                 <TargetEditor draft={targetDraft} setDraft={setTargetDraft} targets={targets} estimates={estimates} busy={busy} onSave={() => run('Nuevo periodo de objetivos guardado.', async () => { await profileRepository.addTargetPeriod(targetDraft); })}/>
-              </>
-            ) : (
-              <SettingsPrivacy
-                waterQuickAmounts={profileDraft.waterQuickAmountsMl ?? [250, 500]}
-                storage={storage}
-                busy={busy}
-                onSaveWater={async (values) => {
-                  const persisted = await profileRepository.getProfile();
-                  if (!persisted) throw new Error('No existe un perfil activo.');
-                  const next = draftFromProfile(persisted, values);
-                  await profileRepository.saveProfile(next);
-                  setProfileDraft(next);
-                  await refresh();
-                }}
-                onRequestPersistence={() => void run('Solicitud de persistencia completada.', async () => { await requestPersistentStorage(); })}
-                onDeleted={async () => {
-                  await refresh();
-                  setProfileDraft(EMPTY_PROFILE);
-                }}
-              />
-            )}
+            </View>
+            <View style={{ display: profileView === 'settings' ? 'flex' : 'none', gap: 16 }}>
+                <SettingsPrivacy
+                  waterQuickAmounts={profileDraft.waterQuickAmountsMl ?? [250, 500]}
+                  storage={storage}
+                  busy={busy}
+                  onSaveWater={async (values) => {
+                    const persisted = await profileRepository.getProfile();
+                    if (!persisted) throw new Error('No existe un perfil activo.');
+                    const next = draftFromProfile(persisted, values);
+                    await profileRepository.saveProfile(next);
+                    setProfileDraft(next);
+                    await refresh();
+                  }}
+                  onRequestPersistence={() => void run('Solicitud de persistencia completada.', async () => { await requestPersistentStorage(); })}
+                  onDeleted={async () => {
+                    await refresh();
+                    setProfileDraft(EMPTY_PROFILE);
+                  }}
+                />
+                <FullBackupPanel onChanged={refresh}/>
+                {(legacyText || legacyPhotoUrl) ? <Card><SectionTitle eyebrow="Conservación Fase 0">Datos ficticios heredados</SectionTitle>{legacyText ? <Text accessibilityLabel="Texto del registro ficticio" selectable style={{ color: palette.ink }}>{legacyText}</Text> : null}{legacyPhotoUrl ? <Image accessibilityLabel="Miniatura de la fotografía de prueba" source={{ uri: legacyPhotoUrl }} style={{ width: '100%', aspectRatio: 16 / 10, borderRadius: 16 }}/>: null}<Text selectable style={{ color: palette.muted, fontSize: 13 }}>Solo lectura dentro del dataset principal.</Text></Card> : null}
+            </View>
           </>
-        )}
-        <FullBackupPanel onChanged={refresh}/>
-        {(legacyText || legacyPhotoUrl) ? <Card><SectionTitle eyebrow="Conservación Fase 0">Datos ficticios heredados</SectionTitle>{legacyText ? <Text accessibilityLabel="Texto del registro ficticio" selectable style={{ color: palette.ink }}>{legacyText}</Text> : null}{legacyPhotoUrl ? <Image accessibilityLabel="Miniatura de la fotografía de prueba" source={{ uri: legacyPhotoUrl }} style={{ width: '100%', aspectRatio: 16 / 10, borderRadius: 16 }}/>: null}<Text selectable style={{ color: palette.muted, fontSize: 13 }}>Solo lectura dentro del dataset principal.</Text></Card> : null}
+        ) : null}
       </View>
-    </ScrollView>
+    </AppShell>
   );
 }
 
@@ -240,12 +277,16 @@ function TargetEditor({ draft, setDraft, targets, estimates, busy, onSave }: { d
   </Card>;
 }
 
-function TodayEmpty({ target }: { target: NutritionTargetPeriod | null }) { return <Card><SectionTitle eyebrow={todayMadrid()}>Hoy</SectionTitle><Text selectable style={{ color: palette.ink, fontSize: 24, fontWeight: '800' }}>Todavía no hay consumos</Text><Text selectable style={{ color: palette.muted }}>El diario de comidas se habilitará en la Fase 3.</Text>{target ? <Text selectable style={{ color: palette.ink }}>Objetivo vigente: {target.caloriesKcal} kcal · P {target.proteinG} g · C {target.carbohydratesG} g · G {target.fatG} g.</Text> : <Text selectable style={{ color: palette.warning }}>Aún no existe un periodo de objetivos.</Text>}</Card>; }
 function Field({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) { return <View style={{ gap: 6 }}><Text selectable style={{ color: palette.ink, fontWeight: '700' }}>{label}</Text><TextInput accessibilityLabel={label} value={value} onChangeText={onChange} style={inputStyle}/></View>; }
 function NumberField({ label, value, onChange, decimal = false }: { label: string; value: number; onChange: (v: number) => void; decimal?: boolean }) { return <Field label={label} value={String(value)} onChange={(text) => onChange(Number(text.replace(',', '.')) || 0)}/>; }
 function Choice({ label, values, selected, onSelect }: { label: string; values: Array<[string | number,string]>; selected: string | number; onSelect: (v: string | number) => void }) { return <View style={{ gap: 8 }}><Text selectable style={{ color: palette.ink, fontWeight: '700' }}>{label}</Text><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{values.map(([value,text]) => <Pressable accessibilityRole="radio" accessibilityState={{ checked: value === selected }} key={String(value)} onPress={() => onSelect(value)} style={{ borderRadius: 12, borderWidth: 1, borderColor: value === selected ? palette.greenDark : palette.border, backgroundColor: value === selected ? palette.mint : '#fff', paddingHorizontal: 14, paddingVertical: 10 }}><Text selectable style={{ color: palette.ink, fontWeight: '700' }}>{text}</Text></Pressable>)}</View></View>; }
 function Metric({ label, value }: { label: string; value: string }) { return <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}><Text selectable style={{ color: palette.muted }}>{label}</Text><Text selectable style={{ color: palette.ink, fontWeight: '800', fontVariant: ['tabular-nums'] }}>{value}</Text></View>; }
-function TabButton({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) { return <Pressable accessibilityRole="tab" accessibilityState={{ selected }} onPress={onPress} style={{ minWidth: 112, flexGrow: 1, borderRadius: 14, padding: 13, backgroundColor: selected ? palette.navy : '#fff', borderWidth: 1, borderColor: selected ? palette.navy : palette.border }}><Text selectable style={{ textAlign: 'center', color: selected ? '#fff' : palette.navy, fontWeight: '800' }}>{label}</Text></Pressable>; }
+function SectionNavigation({ current, items, onSelect }: { current: string; items: Array<[string, string]>; onSelect: (value: string) => void }) {
+  return <div aria-label="Secciones relacionadas" className="na-section-nav" role="tablist">{items.map(([value, label]) => <button aria-selected={current === value} key={value} onClick={() => onSelect(value)} role="tab" type="button">{label}</button>)}</div>;
+}
+function EmptySection({ eyebrow, title, text }: { eyebrow: string; title: string; text: string }) {
+  return <section className="na-empty"><small style={{ color: palette.greenDark, fontWeight: 850, letterSpacing: '.08em' }}>{eyebrow}</small><h2>{title}</h2><p>{text}</p></section>;
+}
 function Notice({ text, danger = false }: { text: string; danger?: boolean }) { return <View style={{ backgroundColor: danger ? palette.dangerBackground : '#eaf5ff', borderRadius: 16, padding: 14 }}><Text selectable style={{ color: danger ? palette.danger : palette.navySoft, fontWeight: '700' }}>{text}</Text></View>; }
 function Loading() { return <ScrollView contentInsetAdjustmentBehavior="automatic" style={{ flex: 1, backgroundColor: palette.background }} contentContainerStyle={{ alignItems: 'center', padding: 16 }}><View testID="viability-content" style={{ width: '100%', maxWidth: 720, alignSelf: 'center', gap: 12 }}><Text selectable style={{ color: palette.ink, fontSize: 28, fontWeight: '900' }}>NutrIAsta</Text><Text selectable>Abriendo almacenamiento local…</Text></View></ScrollView>; }
 function estimatesForType() { return { resting: 0, maintenance: 0, scenarios: energyScenarios(0), references: efsaGeneralReferences(0) }; }

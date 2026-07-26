@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { openMvpWithProfile } from './mvp-fixture';
+import { openMvpSection, openMvpWithProfile } from './mvp-fixture';
 
 test('gestiona varias porciones, energía calculada y un duplicado EAN real', async ({ page }) => {
   await openMvpWithProfile(page);
-  await page.getByRole('tab', { name: 'Alimentos' }).click();
+  await openMvpSection(page, 'Alimentos');
   await page.getByRole('button', { name: 'Añadir alimento' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Alimento E2E ficticio');
   await page.getByLabel('Marca (opcional)').fill('Marca E2E');
@@ -32,7 +32,7 @@ test('gestiona varias porciones, energía calculada y un duplicado EAN real', as
   await expect(page.getByRole('button', { name: 'Editar porción Cucharada ficticia' })).toBeVisible();
   await page.getByRole('button', { name: 'Guardar alimento' }).click();
   await page.reload();
-  await page.getByRole('tab', { name: 'Alimentos' }).click();
+  await openMvpSection(page, 'Alimentos');
   await expect(page.getByText(/Bol ficticio \(75 g\)/)).toBeVisible();
   await expect(page.getByText(/Cucharada ficticia \(15 g\)/)).toBeVisible();
 

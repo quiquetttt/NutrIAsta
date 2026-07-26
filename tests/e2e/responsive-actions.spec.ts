@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
-import { openMvpWithProfile } from './mvp-fixture';
+import { openMvpSection, openMvpWithProfile } from './mvp-fixture';
 
 const IPHONE_VIEWPORT = { width: 390, height: 844 };
 
@@ -10,7 +10,7 @@ test.beforeEach(async ({ page }) => {
 
 test('las acciones de agua caben en el iPhone y permiten editar y eliminar', async ({ page }) => {
   await openMvpWithProfile(page);
-  await page.getByRole('tab', { name: 'Hoy' }).click();
+  await openMvpSection(page, 'Hoy');
   await page.getByRole('button', { name: '+250 ml' }).click();
 
   const edit = page.getByRole('button', { name: /^Editar agua water-/ });
@@ -30,13 +30,13 @@ test('las acciones de agua caben en el iPhone y permiten editar y eliminar', asy
 
 test('todas las acciones de recetas se adaptan al ancho del iPhone', async ({ page }) => {
   await openMvpWithProfile(page);
-  await page.getByRole('tab', { name: 'Alimentos' }).click();
+  await openMvpSection(page, 'Alimentos');
   await page.getByRole('button', { name: 'Añadir alimento' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Ingrediente ficticio móvil');
   await page.getByLabel('Energía (kcal)').fill('100');
   await page.getByRole('button', { name: 'Guardar alimento' }).click();
 
-  await page.getByRole('tab', { name: 'Recetas' }).click();
+  await openMvpSection(page, 'Recetas');
   await page.getByRole('button', { name: 'Crear receta' }).click();
   await page.getByLabel('Nombre de receta').fill('Receta ficticia de anchura móvil');
   await page.getByLabel('Cantidad del ingrediente (g o ml base)').fill('100');

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { openMvpWithProfile } from './mvp-fixture';
+import { openMvpSection, openMvpWithProfile } from './mvp-fixture';
 
 const TABLES = ['legacyViabilityRecords', 'legacyViabilityPhotos', 'profiles', 'nutritionTargetPeriods', 'foods', 'foodPortions', 'foodPhotos', 'diaryDays', 'mealEntries', 'mealItems', 'waterEntries', 'trainingDayFlags', 'recipes', 'recipeItems'];
 const BACKUP_PREPARATION_TIMEOUT = 15_000;
@@ -13,6 +13,7 @@ test('restaura las 14 tablas pobladas mediante cancelación, activación, rollba
   await populateAllMvpTables(page);
   expect(await populatedTableCounts(page)).toEqual(Object.fromEntries(TABLES.map((table) => [table, 1])));
 
+  await openMvpSection(page, 'Ajustes y privacidad');
   await page.getByLabel('Contraseña del backup completo').fill('clave-ficticia-segura');
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Exportar backup completo' }).click();
@@ -23,45 +24,58 @@ test('restaura las 14 tablas pobladas mediante cancelación, activación, rollba
   await download.saveAs(uploadPath);
   await expect(page.getByText(/Backup completo generado/)).toBeVisible();
 
-  await page.getByRole('tab', { name: 'Perfil y objetivos' }).click();
+  await openMvpSection(page, 'Perfil y objetivos');
   await page.getByLabel('Alias').fill('Perfil ficticio modificado');
   await page.getByRole('button', { name: 'Guardar cambios del perfil' }).click();
   await expect(page.getByText('Perfil actualizado.')).toBeVisible();
+  await openMvpSection(page, 'Ajustes y privacidad');
   await page.getByLabel('Archivo de backup completo').setInputFiles(uploadPath);
   await expect(page.getByText('Candidato temporal verificado')).toBeVisible({ timeout: BACKUP_PREPARATION_TIMEOUT });
+  await openMvpSection(page, 'Perfil y objetivos');
   await expect(page.getByLabel('Alias')).toHaveValue('Perfil ficticio modificado');
+  await openMvpSection(page, 'Ajustes y privacidad');
   await page.getByRole('button', { name: 'Cancelar candidato completo' }).click();
   await expect(page.getByText('Candidato descartado. Los datos activos no han cambiado.')).toBeVisible();
+  await openMvpSection(page, 'Perfil y objetivos');
   await expect(page.getByLabel('Alias')).toHaveValue('Perfil ficticio modificado');
 
+  await openMvpSection(page, 'Ajustes y privacidad');
   await page.getByLabel('Archivo de backup completo').setInputFiles(uploadPath);
   await expect(page.getByText('Candidato temporal verificado')).toBeVisible({ timeout: BACKUP_PREPARATION_TIMEOUT });
   await page.reload();
+  await openMvpSection(page, 'Ajustes y privacidad');
   await expect(page.getByText('Candidato temporal verificado')).toBeVisible();
-  await page.getByRole('tab', { name: 'Perfil y objetivos' }).click();
+  await openMvpSection(page, 'Perfil y objetivos');
   await expect(page.getByLabel('Alias')).toHaveValue('Perfil ficticio modificado');
+  await openMvpSection(page, 'Ajustes y privacidad');
   await page.getByRole('button', { name: 'Activar restauración completa' }).click();
+  await openMvpSection(page, 'Perfil y objetivos');
   await expect(page.getByLabel('Alias')).toHaveValue('Persona ficticia');
   expect(Object.values(await populatedTableCounts(page)).every((count) => count > 0)).toBe(true);
+  await openMvpSection(page, 'Ajustes y privacidad');
   await page.getByRole('button', { name: 'Volver a datos anteriores' }).click();
+  await openMvpSection(page, 'Perfil y objetivos');
   await expect(page.getByLabel('Alias')).toHaveValue('Perfil ficticio modificado');
+  await openMvpSection(page, 'Ajustes y privacidad');
   await page.getByRole('button', { name: 'Reactivar candidato completo' }).click();
+  await openMvpSection(page, 'Perfil y objetivos');
   await expect(page.getByLabel('Alias')).toHaveValue('Persona ficticia');
   expect(Object.values(await populatedTableCounts(page)).every((count) => count > 0)).toBe(true);
+  await openMvpSection(page, 'Ajustes y privacidad');
   await page.getByRole('button', { name: 'Confirmar restauración completa' }).click();
   await page.reload();
-  await page.getByRole('tab', { name: 'Perfil y objetivos' }).click();
+  await openMvpSection(page, 'Perfil y objetivos');
   await expect(page.getByLabel('Alias')).toHaveValue('Persona ficticia');
-  await expect(page.getByText('Versión 0.2.1 — MVP 1 local')).toBeVisible();
+  await expect(page.getByText('Versión 0.2.1', { exact: true }).first()).toBeVisible();
   expect(Object.values(await populatedTableCounts(page)).every((count) => count > 0)).toBe(true);
 });
 
 async function populateAllMvpTables(page: import('@playwright/test').Page) {
-  await page.getByRole('tab', { name: 'Perfil y objetivos' }).click();
+  await openMvpSection(page, 'Perfil y objetivos');
   await page.getByLabel('Calorías (kcal/día)').fill('2200');
   await page.getByRole('button', { name: 'Guardar nuevo periodo' }).click();
 
-  await page.getByRole('tab', { name: 'Alimentos' }).click();
+  await openMvpSection(page, 'Alimentos');
   await page.getByRole('button', { name: 'Añadir alimento' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Alimento backup ficticio');
   await page.getByLabel('Energía (kcal)').fill('120');
@@ -76,7 +90,7 @@ async function populateAllMvpTables(page: import('@playwright/test').Page) {
   await expect(page.getByText('Fotografía recodificada localmente.')).toBeVisible();
   await page.getByRole('button', { name: 'Guardar alimento' }).click();
 
-  await page.getByRole('tab', { name: 'Recetas' }).click();
+  await openMvpSection(page, 'Recetas');
   await page.getByRole('button', { name: 'Crear receta' }).click();
   await page.getByLabel('Nombre de receta').fill('Receta backup ficticia');
   await page.getByLabel('Número de porciones').fill('2');
@@ -84,7 +98,7 @@ async function populateAllMvpTables(page: import('@playwright/test').Page) {
   await page.getByRole('button', { name: 'Añadir ingrediente' }).click();
   await page.getByRole('button', { name: 'Guardar receta' }).click();
 
-  await page.getByRole('tab', { name: 'Hoy' }).click();
+  await openMvpSection(page, 'Hoy');
   await page.getByRole('radio', { name: 'Porción guardada' }).click();
   await page.getByRole('button', { name: 'Añadir alimento a la comida' }).click();
   await page.getByRole('button', { name: '+250 ml' }).click();
