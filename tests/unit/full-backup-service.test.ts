@@ -3,6 +3,11 @@ import { decodeFullBackup, FullBackupService } from '@/backup/full-backup-servic
 import { NutrIAstaMainDatabase } from '@/storage/main-database.web';
 import { MainDatasetRepository } from '@/storage/main-dataset-repository.web';
 import { sha256Blob } from '@/utils/crypto';
+import { FULL_DATA_TABLES_V3 } from '@/backup/full-backup-v3-types';
+import { FULL_DATA_TABLES } from '@/backup/full-backup-types';
+import { FULL_BACKUP_DATA_PATH, FULL_BACKUP_MANIFEST_PATH } from '@/backup/full-backup-format';
+import { BlobWriter, TextReader, ZipWriter } from '@zip.js/zip.js';
+import { sha256Text } from '@/utils/crypto';
 
 let database: NutrIAstaMainDatabase | null = null;
 afterEach(async () => { if (database) { database.close(); await database.delete(); database = null; } });
@@ -30,6 +35,18 @@ async function fixture() {
   await database.trainingDayFlags.add({ datasetId, date: '2026-07-22', trained: true, trainingType: 'Fuerza ficticia', note: 'Nota ficticia', updatedAt: now });
   await database.recipes.add({ datasetId, id: 'receta-ficticia', name: 'Receta ficticia', servings: 2, finalWeightG: 300, favorite: true, archived: false, createdAt: now, updatedAt: now });
   await database.recipeItems.add({ datasetId, id: 'ingrediente-ficticio', recipeId: 'receta-ficticia', foodId: 'alimento-ficticio', amountBase: 75, foodSnapshot: snapshot, calculated });
+  await database.trainingSettings.add({ datasetId, id: 'training-settings', effectiveFromMonday: '2026-07-20', weeklyGoal: 4, createdAt: now, updatedAt: now });
+  await database.trainingTypes.add({ datasetId, id: 'training-type', name: 'Pecho', normalizedName: 'pecho', origin: 'initial', initialKey: 'chest', archived: false, createdAt: now, updatedAt: now });
+  await database.exerciseCatalog.add({ datasetId, id: 'exercise', name: 'Press ficticio', normalizedName: 'press ficticio', primaryTrainingTypeId: 'training-type', secondaryTrainingTypeIds: [], note: '', archived: false, createdAt: now, updatedAt: now });
+  await database.trainingSessions.add({ datasetId, id: 'session', localDate: '2026-07-22', status: 'completed', title: 'Sesión ficticia', note: '', trainingTypes: [{ trainingTypeId: 'training-type', nameSnapshot: 'Pecho' }], origin: 'unplanned', createdAt: now, updatedAt: now });
+  await database.trainingSessionExercises.add({ datasetId, id: 'session-exercise', sessionId: 'session', catalogExerciseId: 'exercise', nameSnapshot: 'Press ficticio', order: 0, note: '', createdAt: now, updatedAt: now });
+  await database.trainingSets.add({ datasetId, id: 'set', sessionExerciseId: 'session-exercise', order: 0, repetitions: 10, loadKg: 20, completed: true, note: '', createdAt: now, updatedAt: now });
+  await database.weightEntries.add({ datasetId, id: 'weight', recordedAt: now, localDate: '2026-07-22', localTime: '12:00', weightKg: 70, note: '', origin: 'manual', createdAt: now, updatedAt: now });
+  await database.inventoryItems.add({ datasetId, id: 'inventory-alimento-ficticio', foodId: 'alimento-ficticio', canonicalUnit: 'g', balanceMilliBase: 100_000, revision: 1, createdAt: now, updatedAt: now });
+  await database.inventoryMovements.add({ datasetId, id: 'movement', foodId: 'alimento-ficticio', kind: 'positive-adjustment', deltaMilliBase: 100_000, canonicalUnit: 'g', balanceAfterMilliBase: 100_000, operationId: 'stock-op', idempotencyKey: 'stock-op:food', sourceType: 'fixture', sourceRef: 'fixture', occurredAt: now, createdAt: now, note: '' });
+  await database.inventoryConsumptionDecisions.add({ datasetId, id: 'decision', operationId: 'consume-op', idempotencyKey: 'consume-op:item:food', diaryItemId: 'elemento-ficticio', foodId: 'alimento-ficticio', requestedMilliBase: 0, deductedMilliBase: 0, missingMilliBase: 0, canonicalUnit: 'g', decision: 'full', inventoryDifference: false, createdAt: now });
+  await database.shoppingLists.add({ datasetId, id: 'shopping', status: 'active', createdAt: now, updatedAt: now });
+  await database.shoppingListItems.add({ datasetId, id: 'shopping-item', shoppingListId: 'shopping', foodId: 'alimento-ficticio', text: 'Alimento ficticio', quantity: 1, unit: 'unit', note: '', status: 'pending', source: 'manual', createdAt: now, updatedAt: now });
   const repository = new MainDatasetRepository(database);
   return { datasetId, service: new FullBackupService(database, repository, async () => ({ usage: 1_000, quota: 500_000_000 })) };
 }
@@ -39,6 +56,8 @@ describe('backup completo y restauración temporal', () => {
     const { datasetId, service } = await fixture(); const exported = await service.create('clave-ficticia-segura');
     const file = new File([exported.blob], exported.filename, { type: exported.blob.type });
     const decoded = await decodeFullBackup(file, 'clave-ficticia-segura');
+    expect(decoded.manifest.formatVersion).toBe(3);
+    expect(Object.keys(decoded.manifest.entityCounts)).toHaveLength(FULL_DATA_TABLES_V3.length);
     for (const count of Object.values(decoded.manifest.entityCounts)) expect(count).toBe(1);
     const prepared = await service.prepare(file, 'clave-ficticia-segura');
     expect((await service.status()).prepared?.candidateDatasetId).toBe(prepared.candidateDatasetId);
@@ -60,5 +79,29 @@ describe('backup completo y restauración temporal', () => {
     const prepared = await service.prepare(file, 'clave-ficticia-segura'); await service.cancel(prepared);
     expect((await database!.metadata.get('activeMainDatasetId'))?.value).toBe(datasetId);
     expect(await database!.profiles.where('datasetId').equals(prepared.candidateDatasetId).count()).toBe(0);
+  });
+  it('importa un backup completo de formato 2 como candidato sin modificar el activo', async () => {
+    const { datasetId, service } = await fixture();
+    const data = Object.fromEntries(FULL_DATA_TABLES.map((table) => [table, []]));
+    const dataJson = JSON.stringify(data);
+    const checksum = await sha256Text(dataJson);
+    const fingerprint = await sha256Text(JSON.stringify({ dataChecksum: checksum, media: [] }));
+    const manifest = {
+      format: 'nutriasta-full-backup', formatVersion: 2, minimumAppVersion: '0.2.0',
+      appVersion: '0.2.1', backupId: 'backup-v2-ficticio', sourceDatasetId: 'dataset-v2',
+      exportedAt: '2026-07-22T12:00:00.000Z',
+      entityCounts: Object.fromEntries(FULL_DATA_TABLES.map((table) => [table, 0])),
+      files: [{ path: FULL_BACKUP_DATA_PATH, kind: 'data', size: new TextEncoder().encode(dataJson).byteLength, checksum, mimeType: 'application/json' }],
+      contentFingerprint: fingerprint,
+    };
+    const writer = new ZipWriter(new BlobWriter('application/x-nutriasta-backup'), { password: 'clave-ficticia-segura', encryptionStrength: 3 });
+    await writer.add(FULL_BACKUP_DATA_PATH, new TextReader(dataJson));
+    await writer.add(FULL_BACKUP_MANIFEST_PATH, new TextReader(JSON.stringify(manifest)));
+    const blob = await writer.close();
+    const prepared = await service.prepare(new File([blob], 'compatibilidad-v2.nutriasta.zip'), 'clave-ficticia-segura');
+    expect(prepared.manifest.formatVersion).toBe(2);
+    expect((await database!.metadata.get('activeMainDatasetId'))?.value).toBe(datasetId);
+    expect((await database!.datasets.get(prepared.candidateDatasetId))?.source).toBe('format-2-backup');
+    await service.cancel(prepared);
   });
 });

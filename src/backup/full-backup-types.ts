@@ -1,4 +1,5 @@
 import type { MainMigrationSession } from '@/storage/main-dataset-types';
+import type { FullBackupManifestV3 } from '@/backup/full-backup-v3-types';
 
 export const FULL_DATA_TABLES = [
   'legacyViabilityRecords', 'legacyViabilityPhotos', 'profiles', 'nutritionTargetPeriods',
@@ -35,7 +36,7 @@ export interface PreparedFullRestore {
   candidateDatasetId: string;
   runId: string;
   previousDatasetId: string;
-  manifest: FullBackupManifest;
+  manifest: FullBackupManifest | FullBackupManifestV3;
   payloadBytes: number;
 }
 

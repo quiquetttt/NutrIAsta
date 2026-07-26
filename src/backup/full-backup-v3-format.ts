@@ -188,3 +188,84 @@ export function parseFullBackupV3Data(
   }
   return value as FullBackupDataV3;
 }
+
+export function assertFullBackupV3Relationships(data: FullBackupDataV3): void {
+  const ids = (table: keyof FullBackupDataV3) => new Set(data[table].map((row) => String(row.id)));
+  const foods = ids('foods');
+  const meals = ids('mealEntries');
+  const recipes = ids('recipes');
+  const sessions = ids('trainingSessions');
+  const sessionExercises = ids('trainingSessionExercises');
+  const trainingTypes = ids('trainingTypes');
+  const catalogExercises = ids('exerciseCatalog');
+  const shoppingLists = ids('shoppingLists');
+  const mealItems = ids('mealItems');
+  const movements = ids('inventoryMovements');
+  const inventoryFoods = new Set<string>();
+
+  const requireReference = (table: string, row: Record<string, unknown>, field: string, targets: Set<string>, optional = false) => {
+    const value = row[field];
+    if (optional && (value === undefined || value === null || value === '')) return;
+    if (typeof value !== 'string' || !targets.has(value)) {
+      throw new Error(`${table}.${field} contiene una referencia inexistente.`);
+    }
+  };
+  for (const row of data.foodPortions) requireReference('foodPortions', row, 'foodId', foods);
+  for (const row of data.foodPhotos) requireReference('foodPhotos', row, 'foodId', foods);
+  for (const row of data.mealItems) {
+    requireReference('mealItems', row, 'mealEntryId', meals);
+    requireReference('mealItems', row, 'sourceId', row.sourceType === 'recipe' ? recipes : foods);
+  }
+  for (const row of data.recipeItems) {
+    requireReference('recipeItems', row, 'recipeId', recipes);
+    requireReference('recipeItems', row, 'foodId', foods);
+  }
+  for (const row of data.trainingSessions) {
+    if (!Array.isArray(row.trainingTypes)) throw new Error('trainingSessions.trainingTypes no es válido.');
+    for (const snapshot of row.trainingTypes) {
+      if (!isObject(snapshot)) throw new Error('Una instantánea de tipo de entrenamiento no es válida.');
+      requireReference('trainingSessions.trainingTypes', snapshot, 'trainingTypeId', trainingTypes);
+    }
+  }
+  for (const row of data.exerciseCatalog) {
+    requireReference('exerciseCatalog', row, 'primaryTrainingTypeId', trainingTypes, true);
+    if (!Array.isArray(row.secondaryTrainingTypeIds)
+      || row.secondaryTrainingTypeIds.some((id) => typeof id !== 'string' || !trainingTypes.has(id))) {
+      throw new Error('exerciseCatalog.secondaryTrainingTypeIds no es válido.');
+    }
+  }
+  for (const row of data.trainingSessionExercises) {
+    requireReference('trainingSessionExercises', row, 'sessionId', sessions);
+    requireReference('trainingSessionExercises', row, 'catalogExerciseId', catalogExercises, true);
+  }
+  for (const row of data.trainingSets) requireReference('trainingSets', row, 'sessionExerciseId', sessionExercises);
+  for (const row of data.inventoryItems) {
+    requireReference('inventoryItems', row, 'foodId', foods);
+    if (!Number.isSafeInteger(row.balanceMilliBase) || (row.balanceMilliBase as number) < 0) {
+      throw new Error('inventoryItems.balanceMilliBase no es válido.');
+    }
+    if (inventoryFoods.has(String(row.foodId))) throw new Error('Hay más de un saldo materializado para un alimento.');
+    inventoryFoods.add(String(row.foodId));
+  }
+  const movementSums = new Map<string, number>();
+  for (const row of data.inventoryMovements) {
+    requireReference('inventoryMovements', row, 'foodId', foods);
+    if (!Number.isSafeInteger(row.deltaMilliBase)) throw new Error('inventoryMovements.deltaMilliBase no es válido.');
+    const foodId = String(row.foodId);
+    movementSums.set(foodId, (movementSums.get(foodId) ?? 0) + (row.deltaMilliBase as number));
+  }
+  for (const row of data.inventoryItems) {
+    if ((movementSums.get(String(row.foodId)) ?? 0) !== row.balanceMilliBase) {
+      throw new Error('El saldo de inventario no coincide con sus movimientos.');
+    }
+  }
+  for (const row of data.inventoryConsumptionDecisions) {
+    requireReference('inventoryConsumptionDecisions', row, 'diaryItemId', mealItems);
+    requireReference('inventoryConsumptionDecisions', row, 'foodId', foods);
+    requireReference('inventoryConsumptionDecisions', row, 'movementId', movements, true);
+  }
+  for (const row of data.shoppingListItems) {
+    requireReference('shoppingListItems', row, 'shoppingListId', shoppingLists);
+    requireReference('shoppingListItems', row, 'foodId', foods, true);
+  }
+}
