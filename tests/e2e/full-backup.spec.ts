@@ -66,7 +66,7 @@ test('restaura las 14 tablas pobladas mediante cancelación, activación, rollba
   await page.reload();
   await openMvpSection(page, 'Perfil y objetivos');
   await expect(page.getByLabel('Alias')).toHaveValue('Persona ficticia');
-  await expect(page.getByText('Versión 0.2.1', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('Versión 0.3.0', { exact: true }).first()).toBeVisible();
   expect(Object.values(await populatedTableCounts(page)).every((count) => count > 0)).toBe(true);
 });
 

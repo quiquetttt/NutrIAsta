@@ -51,10 +51,13 @@ test('mantiene navegación, texto ampliado, teclado y movimiento reducido', asyn
 test('usa barra lateral en escritorio y conserva todos los accesos', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await openMvpWithProfile(page);
-  await expect(page.locator('.na-rail')).toBeVisible();
-  await expect(page.locator('.na-bottom-nav')).toBeHidden();
-  for (const label of DESTINATIONS) {
-    await expect(page.locator('.na-rail .na-nav-item').filter({ hasText: new RegExp(`^${label}$`) })).toBeVisible();
+  for (const width of [1280, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(page.locator('.na-rail')).toBeVisible();
+    await expect(page.locator('.na-bottom-nav')).toBeHidden();
+    for (const label of DESTINATIONS) {
+      await expect(page.locator('.na-rail .na-nav-item').filter({ hasText: new RegExp(`^${label}$`) })).toBeVisible();
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   }
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });

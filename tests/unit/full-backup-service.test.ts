@@ -104,4 +104,9 @@ describe('backup completo y restauración temporal', () => {
     expect((await database!.datasets.get(prepared.candidateDatasetId))?.source).toBe('format-2-backup');
     await service.cancel(prepared);
   });
+  it('bloquea la exportación si el saldo de inventario no reconcilia con sus movimientos', async () => {
+    const { service } = await fixture();
+    await database!.inventoryItems.update(['dataset-original', 'inventory-alimento-ficticio'], { balanceMilliBase: 99_000 });
+    await expect(service.create('clave-ficticia-segura')).rejects.toThrow(/no coincide/);
+  });
 });

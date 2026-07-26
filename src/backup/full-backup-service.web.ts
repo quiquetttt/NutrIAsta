@@ -147,6 +147,7 @@ export class FullBackupService {
   async create(password: string) {
     return trackUpdateBlockingOperation(async () => {
       assertFullBackupPassword(password); const datasetId = await this.activeId(); const built = await buildSnapshot(this.db, datasetId, FULL_DATA_TABLES_V3); const exportedAt = new Date().toISOString();
+      assertFullBackupV3Relationships(built.data as FullBackupDataV3);
       const manifest: FullBackupManifestV3 = { format: 'nutriasta-full-backup', formatVersion: 3, databaseSchemaVersion: 6, minimumAppVersion: FULL_BACKUP_V3_MINIMUM_APP_VERSION, appVersion: APP_VERSION, backupId: createId('backup-full'), sourceDatasetId: datasetId, exportedAt, entityCounts: built.counts as FullBackupManifestV3['entityCounts'], files: built.files, contentFingerprint: built.fingerprint };
       parseFullBackupV3Manifest(JSON.stringify(manifest), FULL_BACKUP_V3_MINIMUM_APP_VERSION); const writer = new ZipWriter(new BlobWriter(FULL_BACKUP_MIME), { password, encryptionStrength: 3 });
       await writer.add(FULL_BACKUP_V3_DATA_PATH, new TextReader(built.dataJson));
