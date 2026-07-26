@@ -1,6 +1,6 @@
 # NutrIAsta — Especificación funcional del MVP 1
 
-Estado: **aprobado funcionalmente; no autorizado para implementación**  
+Estado: **aprobado e implementado localmente; pendiente de validación física y sin autorización de despliegue**
 Fecha: 22 de julio de 2026  
 Base aprobada: `viability-approved-0.1.1`
 
@@ -674,4 +674,4 @@ Cada fase requerirá pruebas locales antes de pasar a la siguiente. No habrá de
 
 La especificación funcional y las cinco decisiones del apartado 19 fueron aprobadas expresamente por el propietario el 22 de julio de 2026.
 
-Esta aprobación no autoriza implementación, instalación de dependencias, cambios de IndexedDB ni despliegues. Cada fase técnica requerirá una autorización expresa independiente antes de comenzar.
+La implementación local fue autorizada posteriormente y se mantiene en la versión propuesta `0.2.0`. La validación física y cualquier despliegue requieren una autorización expresa independiente.

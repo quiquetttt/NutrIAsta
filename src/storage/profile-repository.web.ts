@@ -19,7 +19,8 @@ export class ProfileRepository {
 
   async getProfile(): Promise<Profile | null> {
     const datasetId = await this.activeDatasetId();
-    return (await this.db.profiles.get([datasetId, 'profile'])) ?? null;
+    const profile = await this.db.profiles.get([datasetId, 'profile']);
+    return profile ? { ...profile, waterQuickAmountsMl: profile.waterQuickAmountsMl?.length ? profile.waterQuickAmountsMl : [250, 500] } : null;
   }
 
   async saveProfile(draft: ProfileDraft): Promise<Profile> {
@@ -29,6 +30,7 @@ export class ProfileRepository {
     const now = new Date().toISOString();
     const profile: Profile = {
       ...draft,
+      waterQuickAmountsMl: draft.waterQuickAmountsMl ?? previous?.waterQuickAmountsMl ?? [250, 500],
       datasetId,
       id: 'profile',
       privacyConsentAt: previous?.privacyConsentAt ?? now,
@@ -73,6 +75,8 @@ function validateProfile(draft: ProfileDraft) {
   if (!Number.isInteger(draft.gymDaysPerWeek) || draft.gymDaysPerWeek < 0 || draft.gymDaysPerWeek > 7) throw new Error('Los días de gimnasio deben estar entre 0 y 7.');
   if (!Number.isInteger(draft.usualStepsPerDay) || draft.usualStepsPerDay < 0 || draft.usualStepsPerDay > 100000) throw new Error('Los pasos habituales no son válidos.');
   if (!Number.isInteger(draft.otherSportsPerWeek) || draft.otherSportsPerWeek < 0 || draft.otherSportsPerWeek > 14) throw new Error('Las sesiones deportivas deben estar entre 0 y 14.');
+  const quickWater = draft.waterQuickAmountsMl ?? [250, 500];
+  if (quickWater.length < 1 || quickWater.length > 6 || quickWater.some((value) => !Number.isInteger(value) || value < 50 || value > 5000) || new Set(quickWater).size !== quickWater.length) throw new Error('Los accesos rápidos de agua deben contener entre 1 y 6 valores únicos de 50 a 5000 ml.');
 }
 
 function validateTargets(draft: NutritionTargetDraft) {

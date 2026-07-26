@@ -17,6 +17,10 @@ describe('perfil y periodos de objetivos', () => {
     const profile = await repository.saveProfile({ alias: 'Persona ficticia', age: 22, formulaSex: 'male', heightCm: 175, weightKg: 70, gymDaysPerWeek: 4, usualStepsPerDay: 8000, otherSportsPerWeek: 1, otherSportsDescription: 'Deporte ficticio', pal: 1.6, consent: true });
     expect(profile.datasetId).toBe('dataset-ficticio');
     expect(profile.privacyConsentAt).toBeTruthy();
+    expect(profile.waterQuickAmountsMl).toEqual([250, 500]);
+    const changed = await repository.saveProfile({ alias: 'Persona ficticia', age: 22, formulaSex: 'male', heightCm: 175, weightKg: 70, gymDaysPerWeek: 4, usualStepsPerDay: 8000, otherSportsPerWeek: 1, otherSportsDescription: 'Deporte ficticio', pal: 1.6, waterQuickAmountsMl: [300, 600], consent: true });
+    expect(changed.waterQuickAmountsMl).toEqual([300, 600]);
+    await expect(repository.saveProfile({ alias: 'Persona ficticia', age: 22, formulaSex: 'male', heightCm: 175, weightKg: 70, gymDaysPerWeek: 4, usualStepsPerDay: 8000, otherSportsPerWeek: 1, otherSportsDescription: 'Deporte ficticio', pal: 1.6, waterQuickAmountsMl: [250, 250], consent: true })).rejects.toThrow('únicos');
     await repository.addTargetPeriod({ effectiveFrom: '2026-07-01', caloriesKcal: 2400, proteinG: 130, carbohydratesG: 300, fatG: 70, waterMl: 2500 });
     await repository.addTargetPeriod({ effectiveFrom: '2026-08-01', caloriesKcal: 2500, proteinG: 140, carbohydratesG: 310, fatG: 75, waterMl: null });
     expect((await repository.targetForDate('2026-07-15'))?.caloriesKcal).toBe(2400);

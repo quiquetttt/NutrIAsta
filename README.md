@@ -9,8 +9,8 @@ NutrIAsta es una PWA personal en español para registrar perfil, objetivos manua
 - Perfil local con alias, edad adulta, sexo de referencia de la fórmula, altura, peso y actividad declarada.
 - Mifflin–St Jeor, PAL elegido manualmente, mantenimiento y escenarios matemáticos de ±5 % y ±10 %. Son orientación general, no consejo médico.
 - Objetivos manuales versionados de calorías, proteínas, carbohidratos, grasas y agua.
-- Catálogo manual de alimentos, porciones, favoritos, recientes, supermercado, fotografía local y prueba técnica EAN sin red.
-- Diario por fecha con desayuno, comida, cena y tentempié; snapshots nutricionales, agua y entrenamiento mínimo sí/no con nota.
+- Catálogo manual de alimentos con varias porciones editables, energía declarada o calculada 4/4/9, favoritos, recientes, supermercado, fotografía local sustituible y prueba técnica EAN sin red.
+- Diario por fecha con comidas de varios elementos, desayuno, comida, cena y tentempié; unidades base seguras, snapshots nutricionales, notas, agua y entrenamiento mínimo sí/no.
 - Recetas manuales, planificación futura, copia de comidas/días y conversión de planificado a consumido sin recalcular el histórico.
 - Backup completo formato 2, ZIP cifrado con AES-256, y restauración mediante dataset temporal, verificación y cambio atómico del puntero activo.
 - Importación de backups de viabilidad formato 1. La base `nutriasta` 0.1.1 se mantiene en versión 1 y solo lectura; el MVP usa `nutriasta-main` con migraciones aditivas hasta versión 5.
@@ -46,16 +46,16 @@ npx expo-doctor
 
 `npm run test:e2e` elimina y reconstruye `dist`, elige un puerto libre y arranca un servidor exclusivo con `reuseExistingServer: false`. No reutiliza el puerto 4173 ni servidores anteriores.
 
-Resultados finales locales del 22 de julio de 2026:
+Resultados finales locales del 26 de julio de 2026:
 
 - TypeScript: correcto.
-- Vitest: 16 archivos y 39 pruebas correctas.
+- Vitest: 17 archivos y 44 pruebas correctas.
 - Exportación estática, manifiesto, iconos y service worker: correctos.
-- Playwright: 24 pruebas ejecutables correctas en Chromium/WebKit; 2 omisiones justificadas exclusivamente en WebKit para Windows.
+- Playwright: 30 pruebas ejecutables correctas en Chromium/WebKit; 4 omisiones justificadas exclusivamente en WebKit para Windows.
 - Expo Doctor: 18/18 comprobaciones correctas.
 - Privacidad: ninguna petición de producción a terceros y ninguna API remota.
 
-Las dos omisiones son la reapertura offline bajo service worker y la persistencia de un `Blob` fotográfico. Playwright WebKit en Windows no reproduce esas capacidades de Safari de iPhone de forma fiable. No se omiten las pruebas de backup completo, perfil, alimentos, diario, recetas, migración, actualización ni privacidad.
+Las cuatro omisiones son la reapertura offline bajo service worker y tres recorridos que necesitan serializar fotografías `Blob` en IndexedDB: copia de la foto 0.1.1, edición de fotografía de alimento y backup completo con las 14 tablas pobladas. Playwright WebKit en Windows no reproduce esas capacidades de Safari de iPhone de forma fiable. Los mismos recorridos pasan en Chromium y quedan como pruebas físicas obligatorias en Safari/iPhone. No se omiten en WebKit las pruebas de perfil, porciones, energía 4/4/9, diario, unidades g/ml, recetas, migración sin foto, actualización ni privacidad.
 
 ## Backup completo y restauración segura
 
@@ -83,7 +83,8 @@ La preparación exige espacio adicional de `ceil(payload × 1,5) + 10 MiB`. Escr
 - El service worker no abre, migra ni elimina IndexedDB.
 - No hay `fetch` de aplicación, CDN, fuentes externas, analítica ni telemetría.
 - Las fotografías y backups se procesan en el dispositivo.
-- Los datos pueden eliminarse en el futuro desde una función explícita; no se realizan limpiezas silenciosas de datasets de recuperación.
+- `Eliminar todos mis datos` exige escribir `ELIMINAR` y aceptar una segunda confirmación. Borra exclusivamente las filas del dataset activo en las 14 tablas del MVP 1, incluidas sus fotografías.
+- Esa acción no elimina la base histórica `nutriasta`, el catálogo técnico de datasets, datasets de rollback, backups guardados en Archivos ni la PWA. No se realizan limpiezas silenciosas de recuperación.
 
 `npm audit` mantiene vulnerabilidades moderadas transitivas de las herramientas nativas de Expo SDK 57 (`@expo/config-plugins`/`xcode`/`uuid`). La solución automática propuesta exige una versión incompatible de Expo. No se ha usado `npm audit fix --force`, no se ha rebajado Expo y `expo-doctor` es correcto. Este riesgo no forma parte del JavaScript que ejecuta la PWA en Safari y queda pendiente de una corrección compatible de Expo.
 
@@ -94,16 +95,22 @@ Estas pruebas requieren un despliegue HTTPS autorizado por separado en el mismo 
 1. Antes de actualizar, guardar un backup completo de los datos ficticios actuales y conservar también el backup 0.1.1.
 2. Abrir la PWA instalada y comprobar que la versión anterior no se actualiza sola; aceptar la actualización solo desde el aviso.
 3. Confirmar `Versión 0.2.0 — MVP 1 local`, el texto y fotografía ficticios heredados y los valores de almacenamiento.
-4. Crear un perfil totalmente ficticio y varios periodos de objetivos; cerrar, forzar cierre, reiniciar y comprobarlos.
-5. Crear alimentos ficticios con g/ml, porción, supermercado, favorito, foto de objeto y EAN manual; comprobar duplicados, edición y archivo.
-6. Probar `BarcodeDetector` con un código ficticio o de prueba. Registrar si Safari no lo ofrece y confirmar que el formulario manual funciona.
-7. Registrar comidas, cantidades, agua y entrenamiento ficticio en fechas pasada, actual y futura. Editar después el alimento y los objetivos y confirmar que el histórico no cambia.
-8. Crear una receta ficticia, planificarla, copiarla a otra fecha y convertirla a consumida. Reiniciar y repetir la lectura offline.
-9. Exportar el backup completo con contraseña ficticia y guardarlo en “En mi iPhone”. Confirmar la fecha de último backup.
-10. Modificar perfil, alimento, diario, agua, receta y fotografía. Intentar restaurar con contraseña incorrecta y comprobar que nada cambia.
-11. Preparar con la contraseña correcta, cancelar y comprobar el dataset original. Repetir, activar y verificar el contenido exportado.
-12. Hacer rollback y comprobar todos los cambios posteriores; reactivar el candidato y confirmar. Cerrar, reiniciar y abrir en modo avión.
-13. Confirmar que la base `nutriasta` 0.1.1 sigue disponible e intacta y que no existe tráfico a terceros.
+4. Crear un perfil totalmente ficticio, comprobar que se muestran fórmula, entradas, PAL, fecha y `Estimación`, y guardar dos periodos de objetivos. Verificar que copiar mantenimiento pide confirmación.
+5. Configurar los accesos de agua como 300 y 600 ml, recargar y comprobar que sustituyen a 250 y 500 ml; después restaurar los valores que se prefieran para la prueba.
+6. Crear un alimento ficticio por 100 g con dos porciones. Guardar, recargar, editar otro campo y comprobar que ambas porciones siguen; editar una porción y eliminar la otra con confirmación.
+7. Añadir una fotografía ficticia sin información personal. Guardar, recargar, sustituirla por otra y eliminarla con confirmación, comprobando que el alimento permanece.
+8. Crear un alimento con energía declarada y otro con energía calculada. Verificar la etiqueta 4/4/9 y el resultado. Crear un alimento por 100 ml y comprobar que el diario nunca ofrece gramos para él ni mililitros para el alimento en gramos.
+9. Introducir un EAN manual y tratar de crear realmente un segundo alimento con el mismo código. Debe rechazarse. Probar `BarcodeDetector` con un código de prueba; si Safari no lo ofrece, registrar la limitación y confirmar que el campo manual funciona.
+10. En una misma comida, añadir dos alimentos y una receta mediante una porción guardada y una unidad base. Comprobar el subtotal conjunto, la hora, el estado y la nota.
+11. Editar cantidad y nota, mover un elemento a otra franja y eliminar otro con confirmación. Comprobar alimentos/recetas/comidas recientes, copiar comida y copiar día.
+12. Registrar agua y entrenamiento ficticio. Planificar una fecha futura, verificar que sus totales están separados y convertirla a consumida.
+13. Editar después el alimento, receta y objetivo. Volver al día histórico y confirmar que sus snapshots no cambian. Cerrar, forzar cierre, reiniciar el iPhone y repetir la lectura en modo avión.
+14. Exportar un backup completo con contraseña ficticia y guardarlo en “En mi iPhone”. Confirmar la fecha de último backup.
+15. Modificar perfil, alimento, porciones, diario, agua, receta y fotografía. Intentar restaurar con contraseña incorrecta y comprobar que nada cambia.
+16. Preparar con la contraseña correcta, revisar el candidato, cancelar y comprobar el dataset original. Repetir, activar y verificar las 14 clases de datos y fotografías.
+17. Hacer rollback y comprobar todos los cambios posteriores; reactivar el candidato y confirmar. Cerrar, reiniciar y abrir en modo avión.
+18. En `Ajustes y privacidad`, escribir `ELIMINAR` y cancelar la segunda confirmación: nada debe cambiar. La ejecución real del borrado solo debe probarse después de conservar un backup reciente; debe dejar intactos `nutriasta`, rollback y el archivo guardado.
+19. Confirmar que la base `nutriasta` 0.1.1 sigue disponible e intacta, que la actualización no se activa sola y que no existe tráfico a terceros.
 
 Si se pierde un dato, se activa una actualización sola, aparece tráfico externo, falla la huella, no hay espacio suficiente o el backup no puede mantener simultáneamente el dataset activo y el candidato, la prueba debe detenerse sin desplegar otra versión.
 

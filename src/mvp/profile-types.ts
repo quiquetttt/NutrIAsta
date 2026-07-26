@@ -14,6 +14,7 @@ export interface Profile {
   otherSportsPerWeek: number;
   otherSportsDescription: string;
   pal: PalValue;
+  waterQuickAmountsMl?: number[];
   privacyConsentAt: string;
   createdAt: string;
   updatedAt: string;
