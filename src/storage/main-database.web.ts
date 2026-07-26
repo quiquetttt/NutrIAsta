@@ -11,6 +11,22 @@ import type { NutritionTargetPeriod, Profile } from '@/mvp/profile-types';
 import type { Food, FoodPhoto, FoodPortion } from '@/mvp/food-types';
 import type { DiaryDay, MealEntry, MealItem, TrainingDayFlag, WaterEntry } from '@/mvp/diary-types';
 import type { Recipe, RecipeItem } from '@/mvp/recipe-types';
+import type {
+  ExerciseCatalogItem,
+  TrainingSession,
+  TrainingSessionExercise,
+  TrainingSet,
+  TrainingSettings,
+  TrainingType,
+} from '@/mvp/training-types';
+import type { WeightEntry } from '@/mvp/weight-types';
+import type {
+  InventoryConsumptionDecision,
+  InventoryItem,
+  InventoryMovement,
+  ShoppingList,
+  ShoppingListItem,
+} from '@/mvp/inventory-types';
 import {
   MAIN_DATABASE_NAME,
   MAIN_DATABASE_STORES,
@@ -18,6 +34,7 @@ import {
   MAIN_DATABASE_STORES_V2,
   MAIN_DATABASE_STORES_V3,
   MAIN_DATABASE_STORES_V4,
+  MAIN_DATABASE_STORES_V5,
   MAIN_DATABASE_VERSION,
 } from '@/storage/main-schema';
 
@@ -39,6 +56,18 @@ export class NutrIAstaMainDatabase extends Dexie {
   trainingDayFlags!: Table<TrainingDayFlag, [string, string]>;
   recipes!: Table<Recipe, [string, string]>;
   recipeItems!: Table<RecipeItem, [string, string]>;
+  trainingSettings!: Table<TrainingSettings, [string, string]>;
+  trainingTypes!: Table<TrainingType, [string, string]>;
+  exerciseCatalog!: Table<ExerciseCatalogItem, [string, string]>;
+  trainingSessions!: Table<TrainingSession, [string, string]>;
+  trainingSessionExercises!: Table<TrainingSessionExercise, [string, string]>;
+  trainingSets!: Table<TrainingSet, [string, string]>;
+  weightEntries!: Table<WeightEntry, [string, string]>;
+  inventoryItems!: Table<InventoryItem, [string, string]>;
+  inventoryMovements!: Table<InventoryMovement, [string, string]>;
+  inventoryConsumptionDecisions!: Table<InventoryConsumptionDecision, [string, string]>;
+  shoppingLists!: Table<ShoppingList, [string, string]>;
+  shoppingListItems!: Table<ShoppingListItem, [string, string]>;
 
   constructor(name = MAIN_DATABASE_NAME) {
     super(name);
@@ -46,6 +75,7 @@ export class NutrIAstaMainDatabase extends Dexie {
     this.version(2).stores(MAIN_DATABASE_STORES_V2);
     this.version(3).stores(MAIN_DATABASE_STORES_V3);
     this.version(4).stores(MAIN_DATABASE_STORES_V4);
+    this.version(5).stores(MAIN_DATABASE_STORES_V5);
     this.version(MAIN_DATABASE_VERSION).stores(MAIN_DATABASE_STORES);
   }
 }

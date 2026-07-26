@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { NutrIAstaMainDatabase } from '@/storage/main-database.web';
-import { MAIN_DATABASE_NAME, MAIN_DATABASE_STORES, MAIN_DATABASE_STORES_V1, MAIN_DATABASE_VERSION } from '@/storage/main-schema';
+import {
+  MAIN_DATABASE_NAME,
+  MAIN_DATABASE_STORES,
+  MAIN_DATABASE_STORES_V1,
+  MAIN_DATABASE_VERSION,
+} from '@/storage/main-schema';
 
 let database: NutrIAstaMainDatabase | null = null;
 
@@ -16,13 +21,17 @@ afterEach(async () => {
 describe('base paralela del MVP 1', () => {
   it('usa un nombre distinto y un esquema inicial independiente', async () => {
     expect(MAIN_DATABASE_NAME).toBe('nutriasta-main');
-    expect(MAIN_DATABASE_VERSION).toBe(5);
+    expect(MAIN_DATABASE_VERSION).toBe(6);
     expect(Object.keys(MAIN_DATABASE_STORES).sort()).toEqual([
       'datasets',
       'diaryDays',
+      'exerciseCatalog',
       'foodPhotos',
       'foodPortions',
       'foods',
+      'inventoryConsumptionDecisions',
+      'inventoryItems',
+      'inventoryMovements',
       'legacyViabilityPhotos',
       'legacyViabilityRecords',
       'mealEntries',
@@ -33,8 +42,16 @@ describe('base paralela del MVP 1', () => {
       'profiles',
       'recipeItems',
       'recipes',
+      'shoppingListItems',
+      'shoppingLists',
       'trainingDayFlags',
+      'trainingSessionExercises',
+      'trainingSessions',
+      'trainingSets',
+      'trainingSettings',
+      'trainingTypes',
       'waterEntries',
+      'weightEntries',
     ]);
     database = new NutrIAstaMainDatabase(`main-schema-${crypto.randomUUID()}`);
     await database.open();
