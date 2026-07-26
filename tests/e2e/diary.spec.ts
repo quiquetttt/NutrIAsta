@@ -13,12 +13,14 @@ test('usa porciones, agrupa alimentos, edita y mueve elementos y conserva agua y
   await expect(page.getByRole('radio', { name: /Bol ficticio · 75 g/ })).toBeVisible();
   await page.getByLabel('Cantidad', { exact: true }).fill('2');
   await page.getByLabel('Nota del elemento (opcional)').fill('Nota inicial ficticia');
+  chooseNoInventoryDeduction(page);
   await page.getByRole('button', { name: 'Añadir alimento a la comida' }).click();
   await expect(page.getByText(/Subtotal conjunto: 300\.0 kcal/)).toBeVisible();
 
   await page.getByRole('radio', { name: 'Segundo diario ficticio', exact: true }).click();
   await page.getByRole('radio', { name: /Desayuno · 1 elementos/ }).click();
   await page.getByLabel('Cantidad', { exact: true }).fill('50');
+  chooseNoInventoryDeduction(page);
   await page.getByRole('button', { name: 'Añadir alimento a la comida' }).click();
   await expect(page.getByText(/Subtotal conjunto: 350\.0 kcal/)).toBeVisible();
   await expect(page.getByText(/2 elemento\(s\)/)).toBeVisible();
@@ -84,4 +86,14 @@ async function createFood(page: import('@playwright/test').Page, name: string, e
     await page.getByRole('button', { name: 'Añadir porción' }).click();
   }
   await page.getByRole('button', { name: 'Guardar alimento' }).click();
+}
+
+function chooseNoInventoryDeduction(page: import('@playwright/test').Page) {
+  const answers = [false, true, false];
+  const listener = (dialog: import('@playwright/test').Dialog) => {
+    const answer = answers.shift();
+    void (answer ? dialog.accept() : dialog.dismiss());
+    if (answers.length === 0) page.off('dialog', listener);
+  };
+  page.on('dialog', listener);
 }

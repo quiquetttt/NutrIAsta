@@ -10,6 +10,7 @@ import { DiaryScreen } from '@/features/diary/diary-screen.web';
 import { RecipeManager } from '@/features/recipes/recipe-manager.web';
 import { TrainingScreen, TrainingTodayCard } from '@/features/training/training-screen.web';
 import { WeightScreen } from '@/features/progress/weight-screen.web';
+import { InventoryScreen } from '@/features/inventory/inventory-screen.web';
 import { FullBackupPanel } from '@/features/backup/full-backup-panel.web';
 import { SettingsPrivacy } from '@/features/settings/settings-privacy.web';
 import { efsaGeneralReferences, energyScenarios, macroEnergy, maintenanceEstimate, restingEnergyEstimate } from '@/mvp/nutrition-calculations';
@@ -165,13 +166,7 @@ export function MvpScreen() {
           </>
         ) : null}
         {tab === 'training' ? <TrainingScreen/> : null}
-        {tab === 'inventory' ? (
-          <EmptySection
-            eyebrow="PRÓXIMA FASE"
-            title="Inventario y lista de la compra"
-            text="Este acceso ya forma parte de la navegación. Los saldos y movimientos se implementarán de forma atómica en su fase funcional."
-          />
-        ) : null}
+        {tab === 'inventory' ? <InventoryScreen /> : null}
         {tab === 'profile' ? (
           <>
             <SectionNavigation

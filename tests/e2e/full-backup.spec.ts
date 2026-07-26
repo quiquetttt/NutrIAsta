@@ -100,11 +100,22 @@ async function populateAllMvpTables(page: import('@playwright/test').Page) {
 
   await openMvpSection(page, 'Hoy');
   await page.getByRole('radio', { name: 'Porción guardada' }).click();
+  chooseNoInventoryDeduction(page);
   await page.getByRole('button', { name: 'Añadir alimento a la comida' }).click();
   await page.getByRole('button', { name: '+250 ml' }).click();
   await expect(page.getByText('Agua añadida.', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Guardar: sí he entrenado' }).click();
   await expect(page.getByText('Entrenamiento diario guardado.')).toBeVisible();
+}
+
+function chooseNoInventoryDeduction(page: import('@playwright/test').Page) {
+  const answers = [false, true, false];
+  const listener = (dialog: import('@playwright/test').Dialog) => {
+    const answer = answers.shift();
+    void (answer ? dialog.accept() : dialog.dismiss());
+    if (answers.length === 0) page.off('dialog', listener);
+  };
+  page.on('dialog', listener);
 }
 
 async function populatedTableCounts(page: import('@playwright/test').Page) {

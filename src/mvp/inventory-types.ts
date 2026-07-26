@@ -69,6 +69,11 @@ export interface InventoryConsumptionDecision {
   movementId?: string;
   shoppingListItemId?: string;
   inventoryDifference: boolean;
+  action?: 'consume' | 'edit' | 'reverse' | 'reconsume';
+  requestedDeltaMilliBase?: number;
+  deductedDeltaMilliBase?: number;
+  resultingRequestedMilliBase?: number;
+  resultingDeductedMilliBase?: number;
   createdAt: string;
 }
 
