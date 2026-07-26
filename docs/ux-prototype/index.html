@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <title>NutrIAsta — Prototipo UX/UI</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="prototype-ribbon" role="banner">
+      <div class="prototype-ribbon__identity">
+        <img src="../../public/icons/icon-192.png" alt="" width="34" height="34" />
+        <div>
+          <strong>PROTOTIPO UX/UI — SIN DATOS REALES</strong>
+          <span>Simulación local · no guarda ni conecta datos</span>
+        </div>
+      </div>
+      <div class="prototype-ribbon__controls" aria-label="Estados del prototipo">
+        <button class="chip-button" id="toggle-offline" type="button">Simular offline</button>
+        <button class="chip-button" id="simulate-pending" type="button">Operación pendiente</button>
+      </div>
+    </div>
+
+    <div class="pending-bar" id="pending-bar" role="status" aria-live="polite" hidden>
+      <span class="spinner" aria-hidden="true"></span>
+      <span><strong>Aplicando operación local…</strong> Nutrición e inventario cambiarán juntos.</span>
+    </div>
+
+    <div class="app-shell">
+      <aside class="desktop-rail" aria-label="Navegación principal de escritorio">
+        <div class="brand-lockup">
+          <img src="../../public/icons/icon-192.png" alt="" width="46" height="46" />
+          <div>
+            <strong>NutrIAsta</strong>
+            <span>Registro local</span>
+          </div>
+        </div>
+        <nav class="rail-nav" aria-label="Secciones principales"></nav>
+        <div class="rail-footer">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span data-network-label>Online</span>
+          <small>Prototipo 0.3.0</small>
+        </div>
+      </aside>
+
+      <div class="app-surface">
+        <header class="app-header">
+          <div>
+            <p class="eyebrow" id="view-eyebrow">DOMINGO, 26 DE JULIO</p>
+            <h1 id="view-title">Hoy</h1>
+          </div>
+          <div class="header-actions">
+            <span class="network-pill" data-network-pill>
+              <span class="status-dot" aria-hidden="true"></span>
+              <span data-network-label>Online</span>
+            </span>
+          </div>
+        </header>
+
+        <main class="view-host" id="view-host">
+          <section class="app-view is-active" data-view="today" aria-labelledby="view-title">
+            <div class="welcome-row">
+              <div>
+                <p class="muted">Buenos días,</p>
+                <h2>Persona ficticia</h2>
+              </div>
+              <button class="avatar-button" type="button" data-go="profile" aria-label="Abrir perfil ficticio">PF</button>
+            </div>
+
+            <article class="hero-card">
+              <div class="card-topline">
+                <div>
+                  <p class="eyebrow eyebrow--light">TU DÍA</p>
+                  <h2>1.480 <span>/ 2.200 kcal</span></h2>
+                </div>
+                <span class="hero-percent">67 %</span>
+              </div>
+              <div class="progress-track progress-track--hero" aria-label="67 por ciento del objetivo de calorías">
+                <span style="width: 67%"></span>
+              </div>
+              <div class="macro-grid">
+                <div>
+                  <span>Proteína</span>
+                  <strong>92 / 140 g</strong>
+                  <i><b style="width: 66%"></b></i>
+                </div>
+                <div>
+                  <span>Carbohidratos</span>
+                  <strong>150 / 250 g</strong>
+                  <i><b style="width: 60%"></b></i>
+                </div>
+                <div>
+                  <span>Grasa</span>
+                  <strong>55 / 70 g</strong>
+                  <i><b style="width: 79%"></b></i>
+                </div>
+              </div>
+              <button class="text-link text-link--light" type="button" data-go="diary">Abrir diario <span aria-hidden="true">→</span></button>
+            </article>
+
+            <div class="summary-grid">
+              <article class="summary-card">
+                <div class="summary-icon summary-icon--water" aria-hidden="true">◒</div>
+                <p>Agua</p>
+                <strong id="water-total">1.250 ml</strong>
+                <span>Objetivo manual 2.000 ml</span>
+                <div class="quick-actions">
+                  <button type="button" class="mini-button" data-water="250">+250</button>
+                  <button type="button" class="mini-button" data-water="500">+500</button>
+                </div>
+              </article>
+
+              <article class="summary-card">
+                <div class="summary-icon summary-icon--training" aria-hidden="true">◆</div>
+                <p>Entrenamientos</p>
+                <strong>3 de 4</strong>
+                <span>Próximo · hoy, 18:00</span>
+                <button class="text-link" type="button" data-go="training">Abrir semana <span aria-hidden="true">→</span></button>
+              </article>
+            </div>
+
+            <article class="notice-card notice-card--warning">
+              <div class="notice-icon" aria-hidden="true">!</div>
+              <div>
+                <strong>2 alimentos se agotarán pronto</strong>
+                <p>Hay 4 elementos pendientes en la lista de la compra.</p>
+              </div>
+              <button class="button button--secondary" type="button" data-go="inventory" data-inventory-target="shopping">Revisar lista</button>
+            </article>
+
+            <section class="section-block">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">HOY</p>
+                  <h2>Plan del día</h2>
+                </div>
+                <button class="text-link" type="button" data-go="diary">Ver todo</button>
+              </div>
+              <div class="timeline-list">
+                <div class="timeline-row">
+                  <span class="timeline-time">08:10</span>
+                  <span class="timeline-marker timeline-marker--done" aria-label="Consumido">✓</span>
+                  <div><strong>Desayuno</strong><span>Avena, leche y plátano · 420 kcal</span></div>
+                </div>
+                <div class="timeline-row">
+                  <span class="timeline-time">14:00</span>
+                  <span class="timeline-marker" aria-label="Planificado">○</span>
+                  <div><strong>Comida planificada</strong><span>Arroz con carne picada · 680 kcal</span></div>
+                </div>
+                <div class="timeline-row">
+                  <span class="timeline-time">18:00</span>
+                  <span class="timeline-marker timeline-marker--training" aria-label="Entrenamiento planificado">◆</span>
+                  <div><strong>Pecho + tríceps</strong><span>Sesión planificada · 6 ejercicios</span></div>
+                </div>
+              </div>
+            </section>
+          </section>
+
+          <section class="app-view" data-view="diary" aria-labelledby="view-title" hidden>
+            <div class="date-switcher" aria-label="Seleccionar fecha del diario">
+              <button type="button" aria-label="Día anterior">‹</button>
+              <button type="button" class="date-switcher__current">
+                <span>Hoy</span>
+                <strong>Domingo, 26 de julio</strong>
+              </button>
+              <button type="button" aria-label="Día siguiente">›</button>
+            </div>
+
+            <div class="quick-link-grid">
+              <button type="button" class="quick-link-card">
+                <span class="quick-link-icon" aria-hidden="true">●</span>
+                <span><strong>Alimentos</strong><small>Catálogo, EAN y porciones</small></span>
+                <b aria-hidden="true">›</b>
+              </button>
+              <button type="button" class="quick-link-card">
+                <span class="quick-link-icon" aria-hidden="true">◒</span>
+                <span><strong>Recetas</strong><small>Compuestas y favoritas</small></span>
+                <b aria-hidden="true">›</b>
+              </button>
+            </div>
+
+            <article class="card">
+              <div class="section-heading section-heading--compact">
+                <div><p class="eyebrow">RESUMEN CONSUMIDO</p><h2>Totales del día</h2></div>
+                <span class="soft-pill">67 %</span>
+              </div>
+              <div class="nutrition-lines">
+                <div><span>Calorías</span><strong>1.480 / 2.200 kcal</strong><i><b style="width:67%"></b></i></div>
+                <div><span>Proteína</span><strong>92 / 140 g</strong><i><b style="width:66%"></b></i></div>
+                <div><span>Carbohidratos</span><strong>150 / 250 g</strong><i><b style="width:60%"></b></i></div>
+                <div><span>Grasa</span><strong>55 / 70 g</strong><i><b style="width:79%"></b></i></div>
+              </div>
+              <p class="muted small">Planificado aparte: 1.020 kcal · P 62 g · C 112 g · G 31 g.</p>
+            </article>
+
+            <div class="meal-list">
+              <article class="list-card">
+                <div class="list-card__header">
+                  <div><p class="eyebrow">08:10 · CONSUMIDO</p><h3>Desayuno</h3></div>
+                  <strong>420 kcal</strong>
+                </div>
+                <ul class="plain-list">
+                  <li><span>Avena</span><span>80 g · 304 kcal</span></li>
+                  <li><span>Leche ficticia</span><span>250 ml · 116 kcal</span></li>
+                </ul>
+                <button class="button button--secondary button--compact" type="button">Editar desayuno</button>
+              </article>
+              <article class="list-card">
+                <div class="list-card__header">
+                  <div><p class="eyebrow">14:00 · PLANIFICADO</p><h3>Comida</h3></div>
+                  <strong>680 kcal</strong>
+                </div>
+                <ul class="plain-list">
+                  <li><span>Arroz ficticio</span><span>100 g · 360 kcal</span></li>
+                  <li><span>Carne picada ficticia</span><span>200 g · 320 kcal</span></li>
+                </ul>
+                <button class="button button--primary button--compact" type="button" data-modal="depletion">Marcar como consumida</button>
+              </article>
+              <article class="empty-card">
+                <span aria-hidden="true">＋</span>
+                <div><strong>Cena sin registrar</strong><p>Añade un alimento o una receta.</p></div>
+                <button class="button button--secondary button--compact" type="button">Añadir</button>
+              </article>
+            </div>
+          </section>
+
+          <section class="app-view" data-view="training" aria-labelledby="view-title" hidden>
+            <article class="calendar-card">
+              <div class="calendar-toolbar">
+                <button type="button" aria-label="Mes anterior">‹</button>
+                <div><p>JULIO</p><h2>2026</h2></div>
+                <button type="button" aria-label="Mes siguiente">›</button>
+              </div>
+              <button class="today-button" type="button">Volver a hoy</button>
+              <div class="calendar-legend" aria-label="Leyenda del calendario">
+                <span><i class="legend-dot legend-dot--done"></i>Completada</span>
+                <span><i class="legend-dot legend-dot--planned"></i>Planificada</span>
+                <span><i class="legend-dot legend-dot--cancelled"></i>Cancelada</span>
+              </div>
+              <div class="calendar-grid" role="grid" aria-label="Calendario de entrenamientos de julio de 2026">
+                <span class="weekday">L</span><span class="weekday">M</span><span class="weekday">X</span><span class="weekday">J</span><span class="weekday">V</span><span class="weekday">S</span><span class="weekday">D</span>
+                <span class="calendar-day is-outside"></span><span class="calendar-day is-outside"></span>
+                <button class="calendar-day" type="button"><b>1</b></button>
+                <button class="calendar-day" type="button"><b>2</b><i class="day-state day-state--done">✓</i><small>Pierna</small></button>
+                <button class="calendar-day" type="button"><b>3</b></button>
+                <button class="calendar-day" type="button"><b>4</b></button>
+                <button class="calendar-day" type="button"><b>5</b></button>
+                <button class="calendar-day" type="button"><b>6</b><i class="day-state day-state--done">✓</i><small>Espalda</small></button>
+                <button class="calendar-day" type="button"><b>7</b></button>
+                <button class="calendar-day" type="button"><b>8</b><i class="day-state day-state--cancelled">/</i><small>Cardio</small></button>
+                <button class="calendar-day" type="button"><b>9</b></button>
+                <button class="calendar-day" type="button"><b>10</b><i class="day-state day-state--done">✓</i><small>Pecho</small></button>
+                <button class="calendar-day" type="button"><b>11</b></button>
+                <button class="calendar-day" type="button"><b>12</b></button>
+                <button class="calendar-day" type="button"><b>13</b><i class="day-state day-state--done">✓</i><small>Pierna</small></button>
+                <button class="calendar-day" type="button"><b>14</b></button>
+                <button class="calendar-day" type="button"><b>15</b><i class="day-state day-state--done">✓</i><small>Core</small></button>
+                <button class="calendar-day" type="button"><b>16</b></button>
+                <button class="calendar-day" type="button"><b>17</b><i class="day-state day-state--planned">○</i><small>Pecho</small></button>
+                <button class="calendar-day" type="button"><b>18</b></button>
+                <button class="calendar-day" type="button"><b>19</b></button>
+                <button class="calendar-day" type="button"><b>20</b><i class="day-state day-state--done">✓</i><small>Espalda</small></button>
+                <button class="calendar-day" type="button"><b>21</b></button>
+                <button class="calendar-day" type="button"><b>22</b><i class="day-state day-state--done">✓</i><small>Pierna</small></button>
+                <button class="calendar-day" type="button"><b>23</b></button>
+                <button class="calendar-day" type="button"><b>24</b></button>
+                <button class="calendar-day" type="button"><b>25</b></button>
+                <button class="calendar-day is-today is-selected" type="button" aria-label="Domingo 26, hoy, entrenamiento completado"><b>26</b><i class="day-state day-state--done">✓</i><small>Pecho</small></button>
+                <button class="calendar-day" type="button"><b>27</b></button>
+                <button class="calendar-day" type="button"><b>28</b><i class="day-state day-state--planned">○</i><small>Pierna</small></button>
+                <button class="calendar-day" type="button"><b>29</b></button>
+                <button class="calendar-day" type="button"><b>30</b></button>
+                <button class="calendar-day" type="button"><b>31</b></button>
+              </div>
+            </article>
+
+            <article class="week-card">
+              <div class="week-progress" aria-label="Tres de cuatro entrenamientos">
+                <span>3</span><small>de 4</small>
+              </div>
+              <div>
+                <p class="eyebrow">SEMANA 20–26 JUL.</p>
+                <h2>A un entrenamiento del objetivo</h2>
+                <div class="week-days"><span class="is-done">L ✓</span><span>M</span><span class="is-done">X ✓</span><span>J</span><span>V ○</span><span class="is-done">S ✓</span><span>D</span></div>
+              </div>
+              <button class="button button--secondary" type="button">Ver resumen semanal</button>
+            </article>
+
+            <article class="session-card">
+              <div class="session-card__header">
+                <div><p class="eyebrow">HOY · COMPLETADA</p><h2>Pecho + tríceps</h2><span>18:00 · 58 min · Nota ficticia</span></div>
+                <span class="success-badge">✓ Hecha</span>
+              </div>
+              <div class="exercise-block">
+                <div class="exercise-title"><strong>Press banca ficticio</strong><span>3 series</span></div>
+                <div class="sets-table" role="table" aria-label="Series de press banca ficticio">
+                  <div role="row"><span role="columnheader">Serie</span><span role="columnheader">Carga</span><span role="columnheader">Repet.</span><span role="columnheader">Estado</span></div>
+                  <div role="row"><span>1</span><strong>50 kg</strong><strong>10</strong><span class="set-done">✓</span></div>
+                  <div role="row"><span>2</span><strong>50 kg</strong><strong>9</strong><span class="set-done">✓</span></div>
+                  <div role="row"><span>3</span><strong>52,5 kg</strong><strong>7</strong><span class="set-done">✓</span></div>
+                </div>
+              </div>
+              <div class="exercise-block">
+                <div class="exercise-title"><strong>Fondos ficticios</strong><span>Sin series anotadas</span></div>
+              </div>
+              <div class="button-row">
+                <button class="button button--secondary" type="button">Copiar sesión</button>
+                <button class="button button--primary" type="button">Editar sesión</button>
+              </div>
+            </article>
+          </section>
+
+          <section class="app-view" data-view="inventory" aria-labelledby="view-title" hidden>
+            <div class="segmented" role="tablist" aria-label="Inventario y compra">
+              <button type="button" role="tab" aria-selected="true" data-inventory-tab="stock">Existencias</button>
+              <button type="button" role="tab" aria-selected="false" data-inventory-tab="shopping">Compra <span>4</span></button>
+            </div>
+
+            <div class="inventory-panel is-active" data-inventory-panel="stock">
+              <div class="search-row">
+                <label class="search-field"><span aria-hidden="true">⌕</span><input type="search" placeholder="Buscar en casa" aria-label="Buscar en inventario" /></label>
+                <button class="square-button" type="button" aria-label="Añadir alimento al inventario">＋</button>
+              </div>
+
+              <article class="inventory-summary">
+                <div><p class="eyebrow">EN CASA</p><strong>12 alimentos</strong><span>8 disponibles · 2 bajos · 2 agotados</span></div>
+                <button class="button button--secondary button--compact" type="button">Qué puedo preparar</button>
+              </article>
+
+              <div class="inventory-list">
+                <article class="inventory-row">
+                  <div class="food-mark food-mark--red" aria-hidden="true">C</div>
+                  <div><strong>Carne picada ficticia</strong><span>Disponible · unidad base g</span></div>
+                  <div class="inventory-quantity"><strong>200 g</strong><button type="button" data-modal="depletion">Usar</button></div>
+                </article>
+                <article class="inventory-row">
+                  <div class="food-mark food-mark--blue" aria-hidden="true">L</div>
+                  <div><strong>Leche ficticia</strong><span class="state-text state-text--empty">Agotado</span></div>
+                  <div class="inventory-quantity"><strong>0 ml</strong><button type="button" data-switch-shopping>A compra</button></div>
+                </article>
+                <article class="inventory-row">
+                  <div class="food-mark food-mark--gold" aria-hidden="true">A</div>
+                  <div><strong>Arroz ficticio</strong><span>Disponible · unidad base g</span></div>
+                  <div class="inventory-quantity"><strong>450 g</strong><button type="button" data-modal="shortage">Usar</button></div>
+                </article>
+                <article class="inventory-row">
+                  <div class="food-mark food-mark--green" aria-hidden="true">Y</div>
+                  <div><strong>Yogur ficticio</strong><span>2 envases · 125 g cada uno</span></div>
+                  <div class="inventory-quantity"><strong>250 g</strong><button type="button">Movimientos</button></div>
+                </article>
+              </div>
+            </div>
+
+            <div class="inventory-panel" data-inventory-panel="shopping" hidden>
+              <article class="shopping-header">
+                <div><p class="eyebrow">LISTA ACTIVA</p><h2>Compra ficticia</h2><span>2 de 4 marcados</span></div>
+                <div class="progress-ring-small" aria-label="Dos de cuatro comprados">2/4</div>
+              </article>
+              <div class="shopping-list">
+                <label class="shopping-row"><input type="checkbox" checked /><span><strong>Leche ficticia</strong><small>2 envases · equivalencia pendiente de revisar</small></span><b>2 ud.</b></label>
+                <label class="shopping-row"><input type="checkbox" checked /><span><strong>Carne picada ficticia</strong><small>Vinculado al catálogo</small></span><b>500 g</b></label>
+                <label class="shopping-row"><input type="checkbox" /><span><strong>Fruta ficticia</strong><small>Entrada manual · sin vincular</small></span><b>4 ud.</b></label>
+                <label class="shopping-row"><input type="checkbox" /><span><strong>Avena ficticia</strong><small>Vinculado al catálogo</small></span><b>1.000 g</b></label>
+              </div>
+              <article class="review-card">
+                <p class="eyebrow">REVISIÓN</p>
+                <h3>2 elementos se añadirán al inventario</h3>
+                <div><span>Carne picada</span><strong>200 g → 700 g</strong></div>
+                <div><span>Leche</span><strong>Requiere equivalencia</strong></div>
+                <button class="button button--primary" type="button" data-pending-action>Revisar y completar compra</button>
+                <button class="button button--secondary" type="button" data-modal="undo">Ver ejemplo de deshacer</button>
+              </article>
+            </div>
+          </section>
+
+          <section class="app-view" data-view="profile" aria-labelledby="view-title" hidden>
+            <div class="profile-panel is-active" data-profile-panel="overview">
+              <article class="profile-identity">
+                <div class="profile-avatar">PF</div>
+                <div><p class="eyebrow">PERFIL LOCAL</p><h2>Persona ficticia</h2><span>22 años · 175 cm · 70 kg</span></div>
+                <button class="button button--secondary button--compact" type="button">Editar</button>
+              </article>
+
+              <div class="profile-list">
+                <button type="button"><span class="list-icon">◎</span><span><strong>Datos y actividad</strong><small>Perfil, gimnasio, pasos y PAL manual</small></span><b>›</b></button>
+                <button type="button"><span class="list-icon">◫</span><span><strong>Objetivos nutricionales</strong><small>2.200 kcal · P 140 · C 250 · G 70</small></span><b>›</b></button>
+                <button type="button" data-profile-target="weight"><span class="list-icon">⌁</span><span><strong>Peso e historial</strong><small>70,0 kg · última entrada ficticia</small></span><b>›</b></button>
+              </div>
+
+              <div class="profile-list">
+                <button type="button" data-profile-target="backup"><span class="list-icon">⇩</span><span><strong>Backup y restauración</strong><small>Formato 3 · copia ficticia reciente</small></span><b>›</b></button>
+                <button type="button"><span class="list-icon">▤</span><span><strong>Almacenamiento</strong><small>Persistente · 24,8 MB de 38,4 GB</small></span><b>›</b></button>
+                <button type="button"><span class="list-icon">◇</span><span><strong>Privacidad y datos</strong><small>Todo permanece en este dispositivo</small></span><b>›</b></button>
+                <button type="button"><span class="list-icon">⚙</span><span><strong>Ajustes</strong><small>Agua, accesibilidad y versión</small></span><b>›</b></button>
+              </div>
+
+              <article class="notice-card notice-card--info">
+                <div class="notice-icon" aria-hidden="true">i</div>
+                <div><strong>Sin análisis médico</strong><p>El peso y la nutrición se muestran como registros personales.</p></div>
+              </article>
+            </div>
+
+            <div class="profile-panel" data-profile-panel="weight" hidden>
+              <button class="back-button" type="button" data-profile-target="overview">‹ Perfil</button>
+              <div class="section-heading">
+                <div><p class="eyebrow">PROGRESO PERSONAL</p><h2>Historial de peso</h2></div>
+                <button class="button button--primary button--compact" type="button">Añadir peso</button>
+              </div>
+              <article class="weight-hero">
+                <div><span>Último registro</span><strong>70,0 kg</strong><small>26 jul. 2026 · dato ficticio</small></div>
+                <div class="weight-difference"><span>Diferencia del periodo</span><strong>−1,2 kg</strong><small>Cálculo descriptivo</small></div>
+              </article>
+              <div class="range-tabs" role="tablist" aria-label="Periodo de la gráfica">
+                <button type="button">1 mes</button><button type="button" class="is-selected">3 meses</button><button type="button">6 meses</button><button type="button">1 año</button><button type="button">Todo</button>
+              </div>
+              <article class="chart-card">
+                <div class="chart-title"><strong>Evolución registrada</strong><span>kg</span></div>
+                <canvas id="weight-chart" width="700" height="300" role="img" aria-label="Gráfica de peso ficticio: desciende de 71,2 a 70 kilogramos entre mayo y julio"></canvas>
+                <div class="chart-axis" aria-hidden="true"><span>1 may.</span><span>1 jun.</span><span>1 jul.</span><span>26 jul.</span></div>
+                <p>El eje se adapta al intervalo visible y no comienza en cero.</p>
+              </article>
+              <article class="accessible-data">
+                <h3>Alternativa textual de la gráfica</h3>
+                <table>
+                  <thead><tr><th>Fecha</th><th>Peso</th></tr></thead>
+                  <tbody><tr><td>1 mayo 2026</td><td>71,2 kg</td></tr><tr><td>1 junio 2026</td><td>70,8 kg</td></tr><tr><td>1 julio 2026</td><td>70,4 kg</td></tr><tr><td>26 julio 2026</td><td>70,0 kg</td></tr></tbody>
+                </table>
+              </article>
+            </div>
+
+            <div class="profile-panel" data-profile-panel="backup" hidden>
+              <button class="back-button" type="button" data-profile-target="overview">‹ Perfil</button>
+              <div class="section-heading">
+                <div><p class="eyebrow">COPIA LOCAL CIFRADA</p><h2>Backup y restauración</h2></div>
+                <span class="soft-pill soft-pill--good">Formato 3</span>
+              </div>
+              <article class="backup-card">
+                <div class="backup-state">
+                  <span class="backup-state__icon">✓</span>
+                  <div><strong>Copia ficticia reciente</strong><span>26 julio 2026 · 18:42 · 14,8 MB</span></div>
+                </div>
+                <p>Incluye nutrición, entrenamientos, peso, inventario y compra. La contraseña no se guarda.</p>
+                <button class="button button--primary" type="button" data-pending-action>Exportar backup formato 3</button>
+                <button class="button button--secondary" type="button" id="prepare-restore">Seleccionar backup para restaurar</button>
+              </article>
+              <article class="restore-card" id="restore-card" data-restore-state="candidate">
+                <div class="restore-steps" aria-label="Paso dos de tres"><span class="is-done">✓</span><i></i><span class="is-current">2</span><i></i><span>3</span></div>
+                <p class="eyebrow">PASO 2 DE 3</p>
+                <h2 id="restore-title">Candidato verificado</h2>
+                <div class="verification-list">
+                  <span>✓ Archivo descifrado</span>
+                  <span>✓ Formato 3 compatible</span>
+                  <span>✓ Checksums verificados</span>
+                </div>
+                <dl>
+                  <div><dt>Exportado</dt><dd>26/07/2026 · 18:42</dd></div>
+                  <div><dt>Contenido</dt><dd>24 comidas · 8 sesiones · 12 alimentos</dd></div>
+                  <div><dt>Tamaño</dt><dd>14,8 MB</dd></div>
+                </dl>
+                <p class="restore-explanation" id="restore-explanation">Los datos actuales siguen activos. Puedes cancelar sin modificarlos.</p>
+                <div class="button-stack" id="restore-actions">
+                  <button class="button button--primary" type="button" id="activate-restore">Activar candidato</button>
+                  <button class="button button--secondary" type="button">Cancelar sin cambiar datos</button>
+                </div>
+              </article>
+            </div>
+          </section>
+        </main>
+
+        <nav class="bottom-nav" aria-label="Navegación principal">
+          <button type="button" data-view-target="today" aria-current="page"><span aria-hidden="true">⌂</span><strong>Hoy</strong></button>
+          <button type="button" data-view-target="diary"><span aria-hidden="true">▤</span><strong>Diario</strong></button>
+          <button type="button" data-view-target="training"><span aria-hidden="true">◆</span><strong>Entrenar</strong></button>
+          <button type="button" data-view-target="inventory"><span aria-hidden="true">▣</span><strong>Inventario</strong></button>
+          <button type="button" data-view-target="profile"><span aria-hidden="true">●</span><strong>Perfil</strong></button>
+        </nav>
+      </div>
+    </div>
+
+    <dialog class="transaction-dialog" id="transaction-dialog" aria-labelledby="dialog-title">
+      <div class="dialog-handle" aria-hidden="true"></div>
+      <button class="dialog-close" type="button" aria-label="Cerrar aviso">×</button>
+      <div class="dialog-icon" id="dialog-icon" aria-hidden="true">!</div>
+      <p class="eyebrow" id="dialog-eyebrow">REVISIÓN ANTES DE CAMBIAR DATOS</p>
+      <h2 id="dialog-title" tabindex="-1">Se va a acabar</h2>
+      <p id="dialog-copy"></p>
+      <div class="transaction-values" id="dialog-values"></div>
+      <div class="dialog-note" id="dialog-note"></div>
+      <div class="button-stack" id="dialog-actions"></div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden>
+      <span aria-hidden="true">✓</span>
+      <strong id="toast-text">Simulación completada.</strong>
+    </div>
+
+    <script src="./prototype.js"></script>
+  </body>
+</html>
