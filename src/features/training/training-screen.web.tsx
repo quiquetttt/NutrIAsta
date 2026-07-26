@@ -17,6 +17,7 @@ import {
   trainingRepository,
   type TrainingSessionDraft,
 } from '@/storage/training-repository.web';
+import { SessionDetails } from '@/features/training/session-details.web';
 
 const TODAY = madridToday();
 const EMPTY_DRAFT = (): TrainingSessionDraft => ({
@@ -39,6 +40,7 @@ export function TrainingScreen() {
   const [goalChoice, setGoalChoice] = useState<'current' | 'next'>('next');
   const [customType, setCustomType] = useState('');
   const [editing, setEditing] = useState(false);
+  const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -219,6 +221,7 @@ export function TrainingScreen() {
             {session.note ? <Text selectable style={{ color: palette.ink }}>{session.note}</Text> : null}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               <ActionButton label="Editar sesión" tone="secondary" onPress={() => editSession(session)} />
+              <ActionButton label={`Ejercicios y series de ${session.title || 'la sesión'}`} tone="secondary" onPress={() => setDetailSessionId(session.id)} />
               {session.status !== 'completed' ? <ActionButton label="Marcar completada" onPress={() => void run('Sesión completada.', () => trainingRepository.changeStatus(session.id, 'completed'))} /> : null}
               {session.status === 'planned' ? <ActionButton label="Cancelar sesión" tone="secondary" onPress={() => void run('Sesión cancelada.', () => trainingRepository.changeStatus(session.id, 'cancelled'))} /> : null}
               <ActionButton label="Copiar sesión" tone="secondary" onPress={() => {
@@ -233,6 +236,8 @@ export function TrainingScreen() {
           setEditing((value) => !value);
         }} />
       </Card>
+
+      {detailSessionId ? <SessionDetails sessionId={detailSessionId} onClose={() => setDetailSessionId(null)} /> : null}
 
       {editing ? (
         <Card>

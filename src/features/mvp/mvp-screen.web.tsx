@@ -9,6 +9,7 @@ import { FoodCatalog } from '@/features/foods/food-catalog.web';
 import { DiaryScreen } from '@/features/diary/diary-screen.web';
 import { RecipeManager } from '@/features/recipes/recipe-manager.web';
 import { TrainingScreen, TrainingTodayCard } from '@/features/training/training-screen.web';
+import { WeightScreen } from '@/features/progress/weight-screen.web';
 import { FullBackupPanel } from '@/features/backup/full-backup-panel.web';
 import { SettingsPrivacy } from '@/features/settings/settings-privacy.web';
 import { efsaGeneralReferences, energyScenarios, macroEnergy, maintenanceEstimate, restingEnergyEstimate } from '@/mvp/nutrition-calculations';
@@ -23,7 +24,7 @@ import type { StorageStatus } from '@/storage/dataset-types';
 
 type Tab = AppDestination;
 type DiaryView = 'diary' | 'foods' | 'recipes';
-type ProfileView = 'profile' | 'settings';
+type ProfileView = 'profile' | 'weight' | 'settings';
 const todayMadrid = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(new Date());
 const EMPTY_STORAGE: StorageStatus = { persisted: null, usage: null, quota: null, lastBackupAt: null };
 
@@ -175,12 +176,15 @@ export function MvpScreen() {
           <>
             <SectionNavigation
               current={profileView}
-              items={[['profile', 'Perfil y objetivos'], ['settings', 'Ajustes y privacidad']]}
+              items={[['profile', 'Perfil y objetivos'], ['weight', 'Historial de peso'], ['settings', 'Ajustes y privacidad']]}
               onSelect={(value) => setProfileView(value as ProfileView)}
             />
             <View style={{ display: profileView === 'profile' ? 'flex' : 'none', gap: 16 }}>
                 <ProfileEditor draft={profileDraft} setDraft={setProfileDraft} estimates={estimates} activeTarget={activeTarget} busy={busy} onSave={() => run('Perfil actualizado.', () => profileRepository.saveProfile(profileDraft).then(() => undefined))}/>
                 <TargetEditor draft={targetDraft} setDraft={setTargetDraft} targets={targets} estimates={estimates} busy={busy} onSave={() => run('Nuevo periodo de objetivos guardado.', async () => { await profileRepository.addTargetPeriod(targetDraft); })}/>
+            </View>
+            <View style={{ display: profileView === 'weight' ? 'flex' : 'none', gap: 16 }}>
+              <WeightScreen />
             </View>
             <View style={{ display: profileView === 'settings' ? 'flex' : 'none', gap: 16 }}>
                 <SettingsPrivacy

@@ -17,16 +17,16 @@ export async function openMvpWithProfile(page: Page, options: { withPhoto?: bool
 
 export async function openMvpSection(
   page: Page,
-  section: 'Hoy' | 'Diario' | 'Alimentos' | 'Recetas' | 'Entrenar' | 'Inventario' | 'Perfil y objetivos' | 'Ajustes y privacidad',
+  section: 'Hoy' | 'Diario' | 'Alimentos' | 'Recetas' | 'Entrenar' | 'Inventario' | 'Perfil y objetivos' | 'Historial de peso' | 'Ajustes y privacidad',
 ) {
   const primary = section === 'Alimentos' || section === 'Recetas' || section === 'Diario'
     ? 'Diario'
-    : section === 'Perfil y objetivos' || section === 'Ajustes y privacidad'
+    : section === 'Perfil y objetivos' || section === 'Historial de peso' || section === 'Ajustes y privacidad'
       ? 'Perfil'
       : section;
   await page.locator('.na-nav-item:visible').filter({ hasText: new RegExp(`^${primary}$`) }).first().click();
   if (section === 'Alimentos' || section === 'Recetas' || section === 'Diario'
-    || section === 'Perfil y objetivos' || section === 'Ajustes y privacidad') {
+    || section === 'Perfil y objetivos' || section === 'Historial de peso' || section === 'Ajustes y privacidad') {
     await page.getByRole('tab', { name: section, exact: true }).click();
   }
 }

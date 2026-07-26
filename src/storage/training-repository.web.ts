@@ -230,9 +230,41 @@ export class TrainingRepository {
       createdAt: now,
       updatedAt: now,
     };
-    await trackWrite(() => this.db.transaction('rw', this.db.metadata, this.db.trainingSessions, async () => {
+    await trackWrite(() => this.db.transaction(
+      'rw',
+      this.db.metadata,
+      this.db.trainingSessions,
+      this.db.trainingSessionExercises,
+      this.db.trainingSets,
+      async () => {
       await this.assertActive(datasetId);
       await this.db.trainingSessions.add(copy);
+      const exercises = await this.db.trainingSessionExercises
+        .where('[datasetId+sessionId]')
+        .equals([datasetId, source.id])
+        .sortBy('order');
+      for (const exercise of exercises) {
+        const exerciseCopy = {
+          ...exercise,
+          id: createId('session-exercise'),
+          sessionId: copy.id,
+          createdAt: now,
+          updatedAt: now,
+        };
+        await this.db.trainingSessionExercises.add(exerciseCopy);
+        const sets = await this.db.trainingSets
+          .where('[datasetId+sessionExerciseId]')
+          .equals([datasetId, exercise.id])
+          .sortBy('order');
+        await this.db.trainingSets.bulkAdd(sets.map((set) => ({
+          ...set,
+          id: createId('training-set'),
+          sessionExerciseId: exerciseCopy.id,
+          completed: false,
+          createdAt: now,
+          updatedAt: now,
+        })));
+      }
     }));
     return copy;
   }

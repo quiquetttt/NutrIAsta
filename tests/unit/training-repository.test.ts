@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { NutrIAstaMainDatabase } from '@/storage/main-database.web';
 import { TrainingInitializer } from '@/storage/training-initializer.web';
 import { TrainingRepository } from '@/storage/training-repository.web';
+import { TrainingDetailRepository } from '@/storage/training-detail-repository.web';
 
 let database: NutrIAstaMainDatabase | null = null;
 
@@ -65,6 +66,7 @@ describe('repositorio de entrenamientos', () => {
 
   it('copia con identificador nuevo y no modifica la sesión original', async () => {
     const repository = await setup();
+    const details = new TrainingDetailRepository(database!);
     const type = (await repository.listTypes())[0]!;
     const original = await repository.saveSession({
       status: 'completed',
@@ -73,6 +75,9 @@ describe('repositorio de entrenamientos', () => {
       note: 'Nota original',
       trainingTypeIds: [type.id],
     });
+    const catalog = await details.createCatalogExercise('Press ficticio');
+    const exercise = await details.addExercise(original.id, { catalogExerciseId: catalog.id, name: catalog.name });
+    await details.addSet(exercise.id, { repetitions: 10, loadKg: 0, completed: true, note: 'Serie ficticia' });
     const copy = await repository.copySession(original.id, '2026-07-28');
 
     expect(copy).toMatchObject({
@@ -83,6 +88,12 @@ describe('repositorio de entrenamientos', () => {
     });
     expect(copy.id).not.toBe(original.id);
     expect(await database!.trainingSessions.get([original.datasetId, original.id])).toEqual(original);
+    const originalDetails = await details.sessionDetails(original.id);
+    const copiedDetails = await details.sessionDetails(copy.id);
+    expect(copiedDetails).toHaveLength(1);
+    expect(copiedDetails[0]!.exercise.id).not.toBe(originalDetails[0]!.exercise.id);
+    expect(copiedDetails[0]!.sets[0]).toMatchObject({ repetitions: 10, loadKg: 0, completed: false });
+    expect(copiedDetails[0]!.sets[0]!.id).not.toBe(originalDetails[0]!.sets[0]!.id);
   });
 
   it('aísla datasets y evita duplicados visibles de tipos personalizados', async () => {

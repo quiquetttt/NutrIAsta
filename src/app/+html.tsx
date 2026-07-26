@@ -121,6 +121,8 @@ const rootStyles = `
   .na-history-row { display: flex; width: 100%; min-width: 0; min-height: 50px; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; color: var(--na-ink); text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--na-border); }
   .na-history-row > span { display: grid; min-width: 0; gap: 2px; }
   .na-history-row small { overflow: hidden; color: var(--na-muted); text-overflow: ellipsis; white-space: nowrap; }
+  .na-weight-chart { display: block; width: 100%; max-height: 260px; color: var(--na-ink); background: linear-gradient(#f9fbfa, #fff); border: 1px solid var(--na-border); border-radius: 16px; }
+  .na-weight-empty { padding: 24px; color: var(--na-muted); text-align: center; background: #f9fbfa; border: 1px dashed var(--na-border); border-radius: 16px; }
   @keyframes na-spin { to { transform: rotate(360deg); } }
   @media (min-width: 900px) {
     .na-shell { display: grid; grid-template-columns: 246px minmax(0, 1fr); min-height: 100dvh; }
