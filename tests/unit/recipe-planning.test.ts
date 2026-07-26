@@ -29,7 +29,7 @@ describe('recetas y planificación con snapshots', () => {
     await diary.addRecipe('2026-07-30', 'breakfast', recipe.id, 1, 'portion', 'planned');
     expect((await diary.get('2026-07-30')).plannedTotals.energyKcal).toBe(250);
     await foods.save({ ...base, name: 'Avena ficticia', energyKcal: 800, proteinG: 20, carbohydratesG: 70, fatG: 8 }, [], undefined, oats.id);
-    await recipes.save('Desayuno ficticio editado', 2, null, [{ foodId: oats.id, amountBase: 100 }], false, recipe.id);
+    await recipes.save('Desayuno ficticio editado', 2, 200, [{ foodId: oats.id, amountBase: 100 }], false, recipe.id);
     const planned = await diary.get('2026-07-30');
     expect(planned.plannedTotals.energyKcal).toBe(250);
     expect(planned.meals[0]?.items[0]?.nutritionSnapshot.name).toBe('Desayuno ficticio');
@@ -40,5 +40,8 @@ describe('recetas y planificación con snapshots', () => {
     expect((await diary.get('2026-08-01')).plannedTotals.energyKcal).toBe(250);
     await diary.copyDay('2026-07-30', '2026-07-31');
     expect((await diary.get('2026-07-31')).plannedTotals.energyKcal).toBe(250);
+    await diary.addRecipe('2026-08-02', 'breakfast', recipe.id, 100, 'g');
+    expect((await diary.get('2026-08-02')).totals.energyKcal).toBe(400);
+    expect((await diary.recentSources())[0]).toMatchObject({ sourceType: 'recipe', sourceId: recipe.id });
   });
 });
