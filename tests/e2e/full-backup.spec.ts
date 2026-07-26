@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { openMvpWithProfile } from './mvp-fixture';
 
 const TABLES = ['legacyViabilityRecords', 'legacyViabilityPhotos', 'profiles', 'nutritionTargetPeriods', 'foods', 'foodPortions', 'foodPhotos', 'diaryDays', 'mealEntries', 'mealItems', 'waterEntries', 'trainingDayFlags', 'recipes', 'recipeItems'];
+const BACKUP_PREPARATION_TIMEOUT = 15_000;
 
 test('restaura las 14 tablas pobladas mediante cancelación, activación, rollback, reactivación y confirmación', async ({ browserName, page }) => {
   test.skip(
@@ -25,15 +26,16 @@ test('restaura las 14 tablas pobladas mediante cancelación, activación, rollba
   await page.getByRole('tab', { name: 'Perfil y objetivos' }).click();
   await page.getByLabel('Alias').fill('Perfil ficticio modificado');
   await page.getByRole('button', { name: 'Guardar cambios del perfil' }).click();
+  await expect(page.getByText('Perfil actualizado.')).toBeVisible();
   await page.getByLabel('Archivo de backup completo').setInputFiles(uploadPath);
-  await expect(page.getByText('Candidato temporal verificado')).toBeVisible();
+  await expect(page.getByText('Candidato temporal verificado')).toBeVisible({ timeout: BACKUP_PREPARATION_TIMEOUT });
   await expect(page.getByLabel('Alias')).toHaveValue('Perfil ficticio modificado');
   await page.getByRole('button', { name: 'Cancelar candidato completo' }).click();
   await expect(page.getByText('Candidato descartado. Los datos activos no han cambiado.')).toBeVisible();
   await expect(page.getByLabel('Alias')).toHaveValue('Perfil ficticio modificado');
 
   await page.getByLabel('Archivo de backup completo').setInputFiles(uploadPath);
-  await expect(page.getByText('Candidato temporal verificado')).toBeVisible();
+  await expect(page.getByText('Candidato temporal verificado')).toBeVisible({ timeout: BACKUP_PREPARATION_TIMEOUT });
   await page.reload();
   await expect(page.getByText('Candidato temporal verificado')).toBeVisible();
   await page.getByRole('tab', { name: 'Perfil y objetivos' }).click();
@@ -50,7 +52,7 @@ test('restaura las 14 tablas pobladas mediante cancelación, activación, rollba
   await page.reload();
   await page.getByRole('tab', { name: 'Perfil y objetivos' }).click();
   await expect(page.getByLabel('Alias')).toHaveValue('Persona ficticia');
-  await expect(page.getByText('Versión 0.2.0 — MVP 1 local')).toBeVisible();
+  await expect(page.getByText('Versión 0.2.1 — MVP 1 local')).toBeVisible();
   expect(Object.values(await populatedTableCounts(page)).every((count) => count > 0)).toBe(true);
 });
 

@@ -1,8 +1,8 @@
-# NutrIAsta — MVP 1 local (versión 0.2.0)
+# NutrIAsta — MVP 1 local (versión 0.2.1)
 
 NutrIAsta es una PWA personal en español para registrar perfil, objetivos manuales, alimentos, comidas, agua, planificación y un indicador diario de entrenamiento. Funciona con IndexedDB mediante Dexie y no tiene cuentas, backend, analítica, telemetría ni sincronización.
 
-> Utiliza exclusivamente datos y fotografías ficticios hasta que la versión 0.2.0 supere la prueba física completa en el iPhone. La persistencia de Safari no está garantizada; conserva backups locales recientes.
+> Utiliza exclusivamente datos y fotografías ficticios hasta que la versión 0.2.1 supere la prueba física del parche adaptable en el iPhone. La persistencia de Safari no está garantizada; conserva backups locales recientes.
 
 ## Alcance garantizado
 
@@ -51,7 +51,7 @@ Resultados finales locales del 26 de julio de 2026:
 - TypeScript: correcto.
 - Vitest: 17 archivos y 44 pruebas correctas.
 - Exportación estática, manifiesto, iconos y service worker: correctos.
-- Playwright: 30 pruebas ejecutables correctas en Chromium/WebKit; 4 omisiones justificadas exclusivamente en WebKit para Windows.
+- Playwright: 34 pruebas ejecutables correctas en Chromium/WebKit; 4 omisiones justificadas exclusivamente en WebKit para Windows. Incluye comprobaciones específicas de las acciones de agua y recetas dentro de un viewport de iPhone de 390 px.
 - Expo Doctor: 18/18 comprobaciones correctas.
 - Privacidad: ninguna petición de producción a terceros y ninguna API remota.
 
@@ -96,7 +96,7 @@ Estas pruebas requieren un despliegue HTTPS autorizado por separado en el mismo 
 
 1. Antes de actualizar, guardar un backup completo de los datos ficticios actuales y conservar también el backup 0.1.1.
 2. Abrir la PWA instalada y comprobar que la versión anterior no se actualiza sola; aceptar la actualización solo desde el aviso.
-3. Confirmar `Versión 0.2.0 — MVP 1 local`, el texto y fotografía ficticios heredados y los valores de almacenamiento.
+3. Confirmar `Versión 0.2.1 — MVP 1 local`, el texto y fotografía ficticios heredados y los valores de almacenamiento.
 4. Crear un perfil totalmente ficticio, comprobar que se muestran fórmula, entradas, PAL, fecha y `Estimación`, y guardar dos periodos de objetivos. Verificar que copiar mantenimiento pide confirmación.
 5. Configurar los accesos de agua como 300 y 600 ml, recargar y comprobar que sustituyen a 250 y 500 ml; después restaurar los valores que se prefieran para la prueba.
 6. Crear un alimento ficticio por 100 g con dos porciones. Guardar, recargar, editar otro campo y comprobar que ambas porciones siguen; editar una porción y eliminar la otra con confirmación.

@@ -56,12 +56,14 @@ export function SectionTitle({ children, eyebrow }: PropsWithChildren<{ eyebrow?
 
 export function ActionButton({
   label,
+  accessibilityLabel,
   onPress,
   disabled,
   tone = 'primary',
   icon,
 }: {
   label: string;
+  accessibilityLabel?: string;
   onPress: () => void;
   disabled?: boolean;
   tone?: 'primary' | 'secondary' | 'danger';
@@ -75,6 +77,7 @@ export function ActionButton({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => ({
