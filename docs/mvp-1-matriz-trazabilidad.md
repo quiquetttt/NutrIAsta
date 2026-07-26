@@ -1,7 +1,7 @@
 # NutrIAsta — Matriz de trazabilidad del MVP 1 garantizado
 
-Fecha de revisión: 26 de julio de 2026  
-Versión propuesta sin desplegar: `0.2.0`  
+Fecha de revisión: 26 de julio de 2026
+Versión propuesta sin desplegar: `0.2.0`
 Especificación de referencia: `docs/mvp-1-perfil-nutricion.md`
 
 Estados:

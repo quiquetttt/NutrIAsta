@@ -86,7 +86,9 @@ La preparación exige espacio adicional de `ceil(payload × 1,5) + 10 MiB`. Escr
 - `Eliminar todos mis datos` exige escribir `ELIMINAR` y aceptar una segunda confirmación. Borra exclusivamente las filas del dataset activo en las 14 tablas del MVP 1, incluidas sus fotografías.
 - Esa acción no elimina la base histórica `nutriasta`, el catálogo técnico de datasets, datasets de rollback, backups guardados en Archivos ni la PWA. No se realizan limpiezas silenciosas de recuperación.
 
-`npm audit` mantiene vulnerabilidades moderadas transitivas de las herramientas nativas de Expo SDK 57 (`@expo/config-plugins`/`xcode`/`uuid`). La solución automática propuesta exige una versión incompatible de Expo. No se ha usado `npm audit fix --force`, no se ha rebajado Expo y `expo-doctor` es correcto. Este riesgo no forma parte del JavaScript que ejecuta la PWA en Safari y queda pendiente de una corrección compatible de Expo.
+La revisión de `npm audit` del 26 de julio de 2026 informa 17 avisos sin vulnerabilidades críticas: 7 altos y 10 moderados. Se actualizó de forma compatible `brace-expansion` 5.0.7 → 5.0.8 en el árbol de Expo. Permanece otra copia antigua dentro de la cadena de compilación `workbox-build` → plugin Rollup → EJS/Jake/Filelist/Minimatch, para la que la última versión directa compatible de Workbox todavía no ofrece una resolución limpia. Los avisos moderados proceden principalmente de herramientas de Expo SDK 57 (`@expo/config-plugins`/`xcode`/`uuid`); la propuesta automática de npm rebajaría Expo a SDK 46 y es incompatible.
+
+No se ha usado `npm audit fix --force`, no se ha rebajado Expo y `expo-doctor` es correcto. Estas cadenas son herramientas de compilación y configuración, no forman parte del JavaScript funcional que ejecuta la PWA estática en Safari. Quedan documentadas como riesgo pendiente hasta que Expo/Workbox publiquen una corrección compatible.
 
 ## Pruebas físicas obligatorias en Safari/iPhone
 
