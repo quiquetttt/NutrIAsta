@@ -40,6 +40,7 @@ test('usa porciones, agrupa alimentos, edita y mueve elementos y conserva agua y
   await expect(page.getByRole('button', { name: /Copiar comida reciente/ })).toBeVisible();
 
   await page.getByRole('button', { name: '+250 ml' }).click();
+  await expect(page.getByText('Agua añadida.', { exact: true })).toBeVisible();
   await page.getByLabel('Tipo de entrenamiento (opcional)').fill('Fuerza ficticia');
   await page.getByLabel('Nota de entrenamiento (opcional)').fill('Sin información real');
   await page.getByRole('button', { name: 'Guardar: sí he entrenado' }).click();

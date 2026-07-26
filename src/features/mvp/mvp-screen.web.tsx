@@ -8,6 +8,7 @@ import { ViabilityScreen } from '@/features/viability/viability-screen.web';
 import { FoodCatalog } from '@/features/foods/food-catalog.web';
 import { DiaryScreen } from '@/features/diary/diary-screen.web';
 import { RecipeManager } from '@/features/recipes/recipe-manager.web';
+import { TrainingScreen, TrainingTodayCard } from '@/features/training/training-screen.web';
 import { FullBackupPanel } from '@/features/backup/full-backup-panel.web';
 import { SettingsPrivacy } from '@/features/settings/settings-privacy.web';
 import { efsaGeneralReferences, energyScenarios, macroEnergy, maintenanceEstimate, restingEnergyEstimate } from '@/mvp/nutrition-calculations';
@@ -151,7 +152,7 @@ export function MvpScreen() {
       <View testID="mvp-content" style={{ width: '100%', gap: 16 }}>
         <UpdateAvailableBanner visible={updateWaiting} onUpdate={() => void run('Activando actualización…', () => pwaUpdateController.activateWaitingUpdate())}/>
         {error ? <Notice danger text={error}/> : message ? <Notice text={message}/> : null}
-        {tab === 'today' ? <DiaryScreen/> : null}
+        {tab === 'today' ? <><TrainingTodayCard onOpen={() => setTab('training')}/><DiaryScreen/></> : null}
         {tab === 'diary' ? (
           <>
             <SectionNavigation
@@ -162,13 +163,7 @@ export function MvpScreen() {
             {diaryView === 'diary' ? <DiaryScreen/> : diaryView === 'foods' ? <FoodCatalog/> : <RecipeManager/>}
           </>
         ) : null}
-        {tab === 'training' ? (
-          <EmptySection
-            eyebrow="PRÓXIMA FASE"
-            title="Tu entrenamiento, en el mismo registro"
-            text="Aquí aparecerán el calendario mensual, el objetivo semanal y las sesiones. La Fase 1 solo integra la navegación aprobada."
-          />
-        ) : null}
+        {tab === 'training' ? <TrainingScreen/> : null}
         {tab === 'inventory' ? (
           <EmptySection
             eyebrow="PRÓXIMA FASE"

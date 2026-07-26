@@ -100,6 +100,27 @@ const rootStyles = `
   .na-empty { display: grid; gap: 10px; padding: 24px; background: #fff; border: 1px solid var(--na-border); border-radius: 22px; box-shadow: 0 10px 30px rgb(7 26 47 / 6%); }
   .na-empty h2, .na-empty p { margin: 0; }
   .na-empty p { color: var(--na-muted); line-height: 1.5; }
+  .na-choice { min-height: 44px; padding: 9px 13px; color: var(--na-navy); font-weight: 800; background: #fff; border: 1px solid var(--na-border); border-radius: 13px; }
+  .na-choice[aria-pressed="true"] { color: var(--na-green-dark); background: var(--na-mint); border-color: var(--na-green-dark); }
+  .na-calendar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; min-width: 0; }
+  .na-calendar-weekday { padding: 4px 0; color: var(--na-muted); font-size: .72rem; font-weight: 850; text-align: center; }
+  .na-calendar-day { position: relative; display: grid; min-width: 0; min-height: 46px; place-items: center; padding: 5px 2px; color: var(--na-ink); font-weight: 800; background: #f9fbfa; border: 1px solid var(--na-border); border-radius: 11px; }
+  .na-calendar-day.is-outside { color: #97a29b; background: #f1f3f2; }
+  .na-calendar-day[aria-selected="true"] { outline: 3px solid var(--na-focus); outline-offset: 1px; }
+  .na-calendar-day i { position: absolute; right: 3px; bottom: 2px; display: grid; width: 16px; height: 16px; place-items: center; color: #fff; font-size: .58rem; font-style: normal; background: var(--na-navy-soft); border-radius: 50%; }
+  .na-calendar-day.is-completed { background: var(--na-mint); border-color: #8eddb6; }
+  .na-calendar-day.is-completed i { background: var(--na-green-dark); }
+  .na-calendar-day.is-planned { background: #eaf5ff; border-color: #a9cee7; }
+  .na-calendar-day.is-cancelled { background: #f1f2f3; border-style: dashed; }
+  .na-calendar-legend { display: flex; flex-wrap: wrap; gap: 12px; color: var(--na-muted); font-size: .75rem; }
+  .na-calendar-legend span { display: flex; align-items: center; gap: 5px; }
+  .na-calendar-legend i { width: 10px; height: 10px; border-radius: 50%; }
+  .na-calendar-legend .is-completed { background: var(--na-green); }
+  .na-calendar-legend .is-planned { background: #4d98c7; }
+  .na-calendar-legend .is-cancelled { background: #919ba2; }
+  .na-history-row { display: flex; width: 100%; min-width: 0; min-height: 50px; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; color: var(--na-ink); text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--na-border); }
+  .na-history-row > span { display: grid; min-width: 0; gap: 2px; }
+  .na-history-row small { overflow: hidden; color: var(--na-muted); text-overflow: ellipsis; white-space: nowrap; }
   @keyframes na-spin { to { transform: rotate(360deg); } }
   @media (min-width: 900px) {
     .na-shell { display: grid; grid-template-columns: 246px minmax(0, 1fr); min-height: 100dvh; }

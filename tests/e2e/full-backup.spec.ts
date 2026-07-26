@@ -102,6 +102,7 @@ async function populateAllMvpTables(page: import('@playwright/test').Page) {
   await page.getByRole('radio', { name: 'Porción guardada' }).click();
   await page.getByRole('button', { name: 'Añadir alimento a la comida' }).click();
   await page.getByRole('button', { name: '+250 ml' }).click();
+  await expect(page.getByText('Agua añadida.', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Guardar: sí he entrenado' }).click();
   await expect(page.getByText('Entrenamiento diario guardado.')).toBeVisible();
 }
