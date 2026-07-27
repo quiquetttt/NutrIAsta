@@ -84,6 +84,8 @@ export function ConsumptionReviewDialog({
                     No descontar inventario
                   </label>
                 </fieldset>
+              ) : final === 0 ? (
+                <Text selectable style={{ color: palette.warning, fontWeight: '900' }}>⚠ Se va a acabar · el saldo final será 0 {unit}</Text>
               ) : (
                 <Text selectable style={{ color: palette.greenDark, fontWeight: '800' }}>Inventario suficiente · descuento completo</Text>
               )}

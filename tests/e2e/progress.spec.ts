@@ -10,23 +10,27 @@ test('registra ejercicios y series opcionales y copia con marcas reiniciadas', a
   await openMvpSection(page, 'Entrenar');
   await page.getByRole('gridcell', { name: new RegExp(`^${localToday}:`) }).click();
   await page.getByLabel('Título opcional').fill('Sesión con series ficticia');
-  await page.getByRole('button', { name: 'Pecho', exact: true }).click();
+  await page.getByRole('button', { name: 'Pecho', exact: true }).first().click();
   await page.getByRole('button', { name: 'Guardar sesión' }).click();
   await expect(page.getByText('Sesión guardada.')).toBeVisible();
 
   await page.getByRole('button', { name: 'Ejercicios y series de Sesión con series ficticia' }).click();
-  await page.getByLabel('O crear ejercicio nuevo').fill('Press ficticio');
+  await page.getByLabel('Nombre del ejercicio').fill('Press ficticio');
+  await page.getByRole('button', { name: 'Crear ejercicio del catálogo' }).click();
   await page.getByRole('button', { name: 'Añadir ejercicio a la sesión' }).click();
-  await expect(page.getByText('Ejercicio añadido.')).toBeVisible();
-  await page.getByLabel('Repeticiones opcionales').fill('8');
-  await page.getByLabel('Carga opcional (kg)').fill('0');
+  await expect(page.getByText('Ejercicio añadido con una instantánea independiente.')).toBeVisible();
+  await page.getByLabel('Repeticiones planificadas').fill('8');
+  await page.getByLabel('Carga planificada (kg)').fill('0');
+  await page.getByLabel('Repeticiones realizadas').fill('8');
+  await page.getByLabel('Carga realizada (kg)').fill('0');
   await page.getByLabel('Serie realizada').setChecked(true);
   await page.getByRole('button', { name: 'Añadir serie a Press ficticio' }).click();
-  await expect(page.getByText(/8 rep · 0 kg · Realizada/)).toBeVisible();
+  await expect(page.getByText(/Plan: 8 rep \/ 0 kg · Real: 8 rep \/ 0 kg/)).toBeVisible();
   await page.getByRole('button', { name: 'Cerrar ejercicios y series' }).click();
 
-  page.once('dialog', (dialog) => dialog.accept(tomorrow));
   await page.getByRole('button', { name: 'Copiar sesión' }).click();
+  await page.getByLabel('Nueva fecha de la copia (AAAA-MM-DD)').fill(tomorrow);
+  await page.getByRole('button', { name: 'Crear copia independiente' }).click();
   await expect(page.getByText('Sesión copiada como planificada.')).toBeVisible();
   const copyState = await page.evaluate(() => new Promise<{ copies: number; copiedCompleted: boolean | null }>((resolve, reject) => {
     const request = indexedDB.open('nutriasta-main');
@@ -66,6 +70,7 @@ test('mantiene un historial de peso neutral, editable y con alternativa textual'
   await page.getByLabel('Hora del peso').fill('20:00');
   await page.getByRole('button', { name: 'Añadir peso' }).click();
   await expect(page.getByRole('img', { name: /Gráfica neutral con 2 pesos/ })).toBeVisible();
+  await expect(page.locator('.na-weight-chart polyline')).toHaveAttribute('stroke', '#225e85');
   await expect(page.getByText(/70,2 kg/).first()).toBeVisible();
   await expect(page.getByText(/70,4 kg/).first()).toBeVisible();
 
@@ -74,8 +79,8 @@ test('mantiene un historial de peso neutral, editable y con alternativa textual'
   await page.getByRole('button', { name: 'Guardar edición de peso' }).click();
   await expect(page.getByText(/70,1 kg/).first()).toBeVisible();
 
-  page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: new RegExp(`Eliminar peso ${localToday}`) }).first().click();
+  await page.getByRole('button', { name: 'Eliminar entrada' }).click();
   await expect(page.getByText('Entrada de peso eliminada.')).toBeVisible();
   await openMvpSection(page, 'Perfil y objetivos');
   await expect(page.getByLabel('Peso (kg)')).toHaveValue('70');

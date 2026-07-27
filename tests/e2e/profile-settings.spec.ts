@@ -21,11 +21,11 @@ test('explica la estimación y no la copia a un objetivo sin confirmación expl�
   await expect(page.getByText(/Diferencia frente al mantenimiento orientativo:/)).toBeVisible();
 
   await page.getByLabel('Calorías (kcal/día)').fill('1111');
-  page.once('dialog', (dialog) => dialog.dismiss());
   await page.getByRole('button', { name: 'Usar mantenimiento estimado como borrador' }).click();
+  await page.getByRole('button', { name: 'Cancelar' }).click();
   await expect(page.getByLabel('Calorías (kcal/día)')).toHaveValue('1111');
-  page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Usar mantenimiento estimado como borrador' }).click();
+  await page.getByRole('button', { name: 'Copiar al formulario' }).click();
   await expect(page.getByLabel('Calorías (kcal/día)')).not.toHaveValue('1111');
   await expect(page.getByText('Periodos guardados: 1. Los anteriores no se sobrescriben.')).toBeVisible();
 });
@@ -39,23 +39,23 @@ test('configura agua y cancela o confirma el borrado sin tocar la base históric
   await page.getByRole('button', { name: 'Guardar accesos rápidos de agua' }).click();
   await expect(page.getByText('Accesos rápidos de agua actualizados.')).toBeVisible();
   await page.reload();
-  await openMvpSection(page, 'Hoy');
+  await openMvpSection(page, 'Diario');
   await expect(page.getByRole('button', { name: '+300 ml' })).toBeVisible();
   await expect(page.getByRole('button', { name: '+600 ml' })).toBeVisible();
   await expect(page.getByRole('button', { name: '+250 ml' })).toHaveCount(0);
 
   await openMvpSection(page, 'Ajustes y privacidad');
   await page.getByLabel('Confirmación para eliminar todos mis datos').fill('ELIMINAR');
-  page.once('dialog', (dialog) => dialog.dismiss());
   await page.getByRole('button', { name: 'Eliminar todos mis datos' }).click();
+  await page.getByRole('button', { name: 'Cancelar' }).click();
   await expect(page.getByText('Eliminación cancelada. No se ha modificado ningún dato.')).toBeVisible();
   await openMvpSection(page, 'Perfil y objetivos');
   await expect(page.getByLabel('Alias')).toHaveValue('Persona ficticia');
 
   await openMvpSection(page, 'Ajustes y privacidad');
   await page.getByLabel('Confirmación para eliminar todos mis datos').fill('ELIMINAR');
-  page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Eliminar todos mis datos' }).click();
+  await page.getByRole('button', { name: 'Eliminar filas del dataset activo' }).click();
   await expect(page.getByRole('button', { name: 'Crear perfil local' })).toBeVisible();
   expect(await readLegacyState(page)).toEqual(legacyBefore);
   expect(await activeMvpRows(page)).toBe(0);
@@ -71,7 +71,7 @@ async function activeMvpRows(page: import('@playwright/test').Page) {
       metadata.onerror = () => reject(metadata.error);
       metadata.onsuccess = async () => {
         const datasetId = metadata.result?.value;
-        const tables = ['legacyViabilityRecords', 'legacyViabilityPhotos', 'profiles', 'nutritionTargetPeriods', 'foods', 'foodPortions', 'foodPhotos', 'diaryDays', 'mealEntries', 'mealItems', 'waterEntries', 'trainingDayFlags', 'recipes', 'recipeItems'];
+        const tables = ['legacyViabilityRecords', 'legacyViabilityPhotos', 'profiles', 'nutritionTargetPeriods', 'foods', 'foodPortions', 'foodPhotos', 'diaryDays', 'mealEntries', 'mealItems', 'waterEntries', 'trainingDayFlags', 'recipes', 'recipeItems', 'trainingSettings', 'trainingTypes', 'trainingSessions', 'exerciseCatalog', 'trainingSessionExercises', 'trainingSets', 'weightEntries', 'inventoryItems', 'inventoryMovements', 'inventoryConsumptionDecisions', 'shoppingLists', 'shoppingListItems'];
         try {
           const counts = await Promise.all(tables.map((table) => new Promise<number>((done, fail) => {
             const index = database.transaction(table, 'readonly').objectStore(table).index('datasetId');

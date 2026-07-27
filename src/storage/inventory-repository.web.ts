@@ -108,6 +108,14 @@ export class InventoryRepository {
     return { list, items };
   }
 
+  async readActiveShoppingList(): Promise<{ list: ShoppingList; items: ShoppingListItem[] } | null> {
+    const datasetId = await this.activeDatasetId();
+    const list = (await this.db.shoppingLists.where('[datasetId+status]').equals([datasetId, 'active']).toArray())[0];
+    if (!list) return null;
+    const items = await this.db.shoppingListItems.where('[datasetId+shoppingListId]').equals([datasetId, list.id]).toArray();
+    return { list, items };
+  }
+
   async addShoppingItem(input: { foodId?: string; text: string; quantity: number; unit: QuantityUnit; canonicalAmount?: number; note?: string; source?: ShoppingListItem['source']; sourceOperationId?: string }): Promise<ShoppingListItem> {
     if (!input.text.trim() || input.text.trim().length > 120) throw new Error('Introduce un texto de compra válido.');
     if (!Number.isFinite(input.quantity) || input.quantity <= 0) throw new Error('La cantidad de compra debe ser mayor que cero.');

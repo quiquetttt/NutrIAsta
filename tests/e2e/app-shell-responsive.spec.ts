@@ -46,6 +46,7 @@ test('mantiene navegación, texto ampliado, teclado y movimiento reducido', asyn
   expect(['0.01ms', '0.00001s', '1e-05s']).toContain(reducedDuration);
   await page.keyboard.press('Tab');
   expect(await page.evaluate(() => document.activeElement?.tagName)).toBe('BUTTON');
+  expect(await page.evaluate(() => getComputedStyle(document.activeElement!).outlineStyle)).not.toBe('none');
 });
 
 test('usa barra lateral en escritorio y conserva todos los accesos', async ({ page }) => {
@@ -61,3 +62,33 @@ test('usa barra lateral en escritorio y conserva todos los accesos', async ({ pa
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   }
 });
+
+test('mantiene contraste de texto y controles táctiles visibles', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openMvpWithProfile(page);
+  await openMvpSection(page, 'Hoy');
+  const pairs = [
+    ['#0d1f2d', '#ffffff'],
+    ['#64727c', '#ffffff'],
+    ['#ffffff', '#071a2f'],
+    ['#11784b', '#dcf8ea'],
+    ['#8a5300', '#fff2d8'],
+    ['#a63333', '#fde8e8'],
+  ] as const;
+  for (const [foreground, background] of pairs) expect(contrast(foreground, background)).toBeGreaterThanOrEqual(4.5);
+  const undersized = await page.locator('button:visible').evaluateAll((buttons) => buttons
+    .map((button) => ({ label: button.getAttribute('aria-label') ?? button.textContent, height: button.getBoundingClientRect().height }))
+    .filter(({ height }) => height < 44));
+  expect(undersized).toEqual([]);
+});
+
+function contrast(foreground: string, background: string) {
+  const luminance = (hex: string) => {
+    const channels = [1, 3, 5].map((start) => Number.parseInt(hex.slice(start, start + 2), 16) / 255)
+      .map((value) => value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * channels[0]! + 0.7152 * channels[1]! + 0.0722 * channels[2]!;
+  };
+  const light = Math.max(luminance(foreground), luminance(background));
+  const dark = Math.min(luminance(foreground), luminance(background));
+  return (light + 0.05) / (dark + 0.05);
+}

@@ -57,8 +57,9 @@ test('muestra, sustituye y elimina una fotografía local sin borrar el alimento'
   await expect.poll(() => storedFoodPhotoChecksum(page)).not.toBe(firstChecksum);
 
   await page.getByRole('button', { name: 'Editar Etiqueta ficticia E2E' }).click();
-  page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Eliminar fotografía' }).click();
+  await page.getByRole('heading', { name: 'Eliminar fotografía' }).waitFor();
+  await page.getByRole('button', { name: 'Eliminar fotografía' }).last().click();
   await page.getByRole('button', { name: 'Guardar alimento' }).click();
   await expect(page.getByLabel('Fotografía de Etiqueta ficticia E2E')).toHaveCount(0);
   await expect(page.getByText('Etiqueta ficticia E2E', { exact: true })).toBeVisible();

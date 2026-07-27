@@ -7,7 +7,7 @@ test('usa porciones, agrupa alimentos, edita y mueve elementos y conserva agua y
   await createFood(page, 'Diario ficticio', 200, 'Bol ficticio', 75);
   await createFood(page, 'Segundo diario ficticio', 100);
 
-  await openMvpSection(page, 'Hoy');
+  await openMvpSection(page, 'Diario');
   await page.getByRole('radio', { name: 'Diario ficticio', exact: true }).click();
   await page.getByRole('radio', { name: 'Porción guardada' }).click();
   await expect(page.getByRole('radio', { name: /Bol ficticio · 75 g/ })).toBeVisible();
@@ -49,6 +49,7 @@ test('usa porciones, agrupa alimentos, edita y mueve elementos y conserva agua y
   await expect(page.getByText('Entrenamiento diario guardado.', { exact: true })).toBeVisible();
 
   await page.reload();
+  await openMvpSection(page, 'Diario');
   await expect(page.getByText('Nota: Nota editada ficticia')).toBeVisible();
   await expect(page.getByText('250 ml', { exact: true })).toHaveCount(1);
   await expect(page.getByText(/250 ml · \d{2}:\d{2}/)).toBeVisible();
@@ -66,7 +67,7 @@ test('la interfaz no ofrece g para alimentos en ml ni ml para alimentos en g', a
   await page.getByLabel('Energía (kcal)').fill('40');
   await page.getByRole('button', { name: 'Guardar alimento' }).click();
 
-  await openMvpSection(page, 'Hoy');
+  await openMvpSection(page, 'Diario');
   await page.getByRole('radio', { name: 'Sólido ficticio', exact: true }).click();
   await expect(page.getByRole('radio', { name: 'Gramos' })).toBeVisible();
   await expect(page.getByRole('radio', { name: 'Mililitros' })).toHaveCount(0);

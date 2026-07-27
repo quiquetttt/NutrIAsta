@@ -98,7 +98,7 @@ async function populateAllMvpTables(page: import('@playwright/test').Page) {
   await page.getByRole('button', { name: 'Añadir ingrediente' }).click();
   await page.getByRole('button', { name: 'Guardar receta' }).click();
 
-  await openMvpSection(page, 'Hoy');
+  await openMvpSection(page, 'Diario');
   await page.getByRole('radio', { name: 'Porción guardada' }).click();
   await page.getByRole('button', { name: 'Añadir alimento a la comida' }).click();
   await page.getByLabel('No descontar inventario').check();

@@ -10,7 +10,7 @@ test.beforeEach(async ({ page }) => {
 
 test('las acciones de agua caben en el iPhone y permiten editar y eliminar', async ({ page }) => {
   await openMvpWithProfile(page);
-  await openMvpSection(page, 'Hoy');
+  await openMvpSection(page, 'Diario');
   await page.getByRole('button', { name: '+250 ml' }).click();
 
   const edit = page.getByRole('button', { name: /^Editar agua water-/ });
@@ -19,12 +19,13 @@ test('las acciones de agua caben en el iPhone y permiten editar y eliminar', asy
   await expectWithinViewport(page, remove);
   await expect(page.getByText(/water-[0-9a-f-]+/)).toHaveCount(0);
 
-  page.once('dialog', (dialog) => dialog.accept('400'));
   await edit.click();
+  await page.getByLabel('Nueva cantidad en ml').fill('400');
+  await page.getByRole('button', { name: 'Guardar cantidad' }).click();
   await expect(page.getByText(/400 ml · \d{2}:\d{2}/)).toBeVisible();
 
-  page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: /^Eliminar agua water-/ }).click();
+  await page.getByRole('button', { name: 'Eliminar agua', exact: true }).click();
   await expect(page.getByText(/400 ml · \d{2}:\d{2}/)).toHaveCount(0);
 });
 
@@ -57,8 +58,9 @@ test('todas las acciones de recetas se adaptan al ancho del iPhone', async ({ pa
   await expect(page.getByLabel('Nombre de receta')).toHaveValue('Receta ficticia de anchura móvil');
   await page.getByRole('button', { name: 'Cancelar' }).click();
 
-  page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Archivar receta' }).click();
+  await page.getByRole('heading', { name: 'Archivar receta' }).waitFor();
+  await page.getByRole('button', { name: 'Archivar receta' }).last().click();
   await expect(page.getByText('Receta ficticia de anchura móvil', { exact: true })).toHaveCount(0);
 });
 

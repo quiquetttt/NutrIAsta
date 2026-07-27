@@ -8,10 +8,12 @@ import { ViabilityScreen } from '@/features/viability/viability-screen.web';
 import { FoodCatalog } from '@/features/foods/food-catalog.web';
 import { DiaryScreen } from '@/features/diary/diary-screen.web';
 import { RecipeManager } from '@/features/recipes/recipe-manager.web';
-import { TrainingScreen, TrainingTodayCard } from '@/features/training/training-screen.web';
+import { TrainingScreen } from '@/features/training/training-screen.web';
 import { WeightScreen } from '@/features/progress/weight-screen.web';
 import { InventoryScreen } from '@/features/inventory/inventory-screen.web';
 import { FullBackupPanel } from '@/features/backup/full-backup-panel.web';
+import { TodayDashboard } from '@/features/today/today-dashboard.web';
+import { AccessibleDialog } from '@/components/accessible-dialog.web';
 import { SettingsPrivacy } from '@/features/settings/settings-privacy.web';
 import { efsaGeneralReferences, energyScenarios, macroEnergy, maintenanceEstimate, restingEnergyEstimate } from '@/mvp/nutrition-calculations';
 import type { FormulaSex, NutritionTargetDraft, NutritionTargetPeriod, PalValue, Profile, ProfileDraft } from '@/mvp/profile-types';
@@ -154,7 +156,16 @@ export function MvpScreen() {
       <View testID="mvp-content" style={{ width: '100%', gap: 16 }}>
         <UpdateAvailableBanner visible={updateWaiting} onUpdate={() => void run('Activando actualización…', () => pwaUpdateController.activateWaitingUpdate())}/>
         {error ? <Notice danger text={error}/> : message ? <Notice text={message}/> : null}
-        {tab === 'today' ? <><TrainingTodayCard onOpen={() => setTab('training')}/><DiaryScreen/></> : null}
+        {tab === 'today' ? (
+          <TodayDashboard
+            storage={storage}
+            onOpenDiary={() => { setDiaryView('diary'); setTab('diary'); }}
+            onOpenTraining={() => setTab('training')}
+            onOpenInventory={() => setTab('inventory')}
+            onOpenWeight={() => { setProfileView('weight'); setTab('profile'); }}
+            onOpenSettings={() => { setProfileView('settings'); setTab('profile'); }}
+          />
+        ) : null}
         {tab === 'diary' ? (
           <>
             <SectionNavigation
@@ -257,6 +268,7 @@ function Orientation({ estimates, draft, activeTarget }: { estimates: ReturnType
 function TargetEditor({ draft, setDraft, targets, estimates, busy, onSave }: { draft: NutritionTargetDraft; setDraft: (v: NutritionTargetDraft) => void; targets: NutritionTargetPeriod[]; estimates: ReturnType<typeof estimatesForType>; busy: boolean; onSave: () => void }) {
   const set = <K extends keyof NutritionTargetDraft>(key: K, value: NutritionTargetDraft[K]) => setDraft({ ...draft, [key]: value });
   const implied = macroEnergy(draft.proteinG, draft.carbohydratesG, draft.fatG);
+  const [estimateReviewOpen, setEstimateReviewOpen] = useState(false);
   return <Card><SectionTitle eyebrow="Objetivos manuales">Nuevo periodo de vigencia</SectionTitle>
     <Field label="Fecha efectiva (AAAA-MM-DD)" value={draft.effectiveFrom} onChange={(v) => set('effectiveFrom', v)}/>
     <NumberField label="Calorías (kcal/día)" value={draft.caloriesKcal} onChange={(v) => set('caloriesKcal', v)} decimal/>
@@ -265,9 +277,10 @@ function TargetEditor({ draft, setDraft, targets, estimates, busy, onSave }: { d
     <NumberField label="Grasas (g/día)" value={draft.fatG} onChange={(v) => set('fatG', v)} decimal/>
     <NumberField label="Agua (ml/día; 0 significa sin objetivo)" value={draft.waterMl ?? 0} onChange={(v) => set('waterMl', v === 0 ? null : v)} decimal/>
     <Text selectable style={{ color: palette.muted }}>Los macros introducidos equivalen a {Math.round(implied)} kcal mediante 4/4/9; diferencia frente al objetivo: {Math.round(implied - draft.caloriesKcal)} kcal.</Text>
-    <ActionButton tone="secondary" label="Usar mantenimiento estimado como borrador" onPress={() => { if (window.confirm('Esto solo copiará la estimación al formulario. Aún tendrás que guardar el objetivo manual.')) set('caloriesKcal', Math.round(estimates.maintenance)); }}/>
+    <ActionButton tone="secondary" label="Usar mantenimiento estimado como borrador" onPress={() => setEstimateReviewOpen(true)}/>
     <ActionButton label="Guardar nuevo periodo" disabled={busy} onPress={onSave}/>
     <Text selectable style={{ color: palette.muted }}>Periodos guardados: {targets.length}. Los anteriores no se sobrescriben.</Text>
+    <AccessibleDialog confirmLabel="Copiar al formulario" description={`Se copiarán ${Math.round(estimates.maintenance)} kcal como borrador. No se guardará ni cambiará ningún objetivo hasta pulsar “Guardar nuevo periodo”.`} onCancel={() => setEstimateReviewOpen(false)} onConfirm={() => { set('caloriesKcal', Math.round(estimates.maintenance)); setEstimateReviewOpen(false); }} open={estimateReviewOpen} title="Usar estimación orientativa"/>
   </Card>;
 }
 

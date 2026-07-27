@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 
 import { ActionButton, Card, SectionTitle, palette } from '@/components/ui';
+import { AccessibleDialog } from '@/components/accessible-dialog.web';
 import { madridToday } from '@/mvp/training-date';
 import type { WeightEntry } from '@/mvp/weight-types';
 import { weightRepository, type WeightDraft } from '@/storage/weight-repository.web';
@@ -14,6 +15,8 @@ export function WeightScreen() {
   const [draft, setDraft] = useState<WeightDraft>(emptyDraft);
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [copyReviewOpen, setCopyReviewOpen] = useState(false);
+  const [deleteEntry, setDeleteEntry] = useState<WeightEntry | null>(null);
 
   async function refresh() { setEntries(await weightRepository.list()); }
   useEffect(() => { void refresh().catch((caught) => setError(errorMessage(caught))); }, []);
@@ -40,11 +43,7 @@ export function WeightScreen() {
           await weightRepository.save(draft);
           setDraft(emptyDraft());
         })} />
-        <ActionButton label="Copiar el peso actual del perfil" tone="secondary" onPress={() => {
-          if (window.confirm('Se añadirá una entrada nueva usando el peso actual del perfil. No se modificará el perfil. ¿Continuar?')) {
-            void run('Peso copiado manualmente desde el perfil.', async () => { await weightRepository.copyFromProfile(draft.localDate, draft.localTime); });
-          }
-        }} />
+        <ActionButton label="Copiar el peso actual del perfil" tone="secondary" onPress={() => setCopyReviewOpen(true)} />
       </Card>
 
       <Card>
@@ -63,13 +62,37 @@ export function WeightScreen() {
             {entry.note ? <Text selectable style={{ color: palette.ink }}>{entry.note}</Text> : null}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               <ActionButton label={`Editar peso ${entry.localDate} ${entry.localTime}`} tone="secondary" onPress={() => setDraft({ id: entry.id, localDate: entry.localDate, localTime: entry.localTime, weightKg: entry.weightKg, note: entry.note, origin: entry.origin })} />
-              <ActionButton label={`Eliminar peso ${entry.localDate} ${entry.localTime}`} tone="danger" onPress={() => {
-                if (window.confirm('¿Eliminar esta entrada de peso? El perfil no cambiará.')) void run('Entrada de peso eliminada.', () => weightRepository.delete(entry.id));
-              }} />
+              <ActionButton label={`Eliminar peso ${entry.localDate} ${entry.localTime}`} tone="danger" onPress={() => setDeleteEntry(entry)} />
             </View>
           </View>
         ))}
       </Card>
+      <AccessibleDialog
+        confirmLabel="Copiar peso del perfil"
+        description={`Se creará una entrada nueva para ${draft.localDate} a las ${draft.localTime}. El perfil no cambiará.`}
+        onCancel={() => setCopyReviewOpen(false)}
+        onConfirm={() => void run('Peso copiado manualmente desde el perfil.', async () => {
+          await weightRepository.copyFromProfile(draft.localDate, draft.localTime);
+          setCopyReviewOpen(false);
+        })}
+        open={copyReviewOpen}
+        title="Revisar copia del peso"
+      />
+      <AccessibleDialog
+        confirmLabel="Eliminar entrada"
+        danger
+        description={deleteEntry ? `Se eliminará la entrada de ${deleteEntry.weightKg.toLocaleString('es-ES')} kg del ${deleteEntry.localDate}. El perfil no cambiará.` : ''}
+        onCancel={() => setDeleteEntry(null)}
+        onConfirm={() => {
+          if (!deleteEntry) return;
+          void run('Entrada de peso eliminada.', async () => {
+            await weightRepository.delete(deleteEntry.id);
+            setDeleteEntry(null);
+          });
+        }}
+        open={Boolean(deleteEntry)}
+        title="Eliminar entrada de peso"
+      />
     </>
   );
 }
@@ -88,8 +111,8 @@ function WeightChart({ entries }: { entries: WeightEntry[] }) {
   return (
     <svg aria-label={`Gráfica neutral con ${entries.length} pesos entre ${min} y ${max} kg`} className="na-weight-chart" role="img" viewBox="0 0 300 135">
       <path d="M18 112H282M18 30V112" stroke="#dce5df" strokeWidth="1" />
-      <polyline fill="none" points={points.map(({ x, y }) => `${x},${y}`).join(' ')} stroke="#11784b" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
-      {points.map(({ x, y, entry }) => <circle key={entry.id} cx={x} cy={y} fill="#24c978" r="4" stroke="#071a2f" strokeWidth="1.5" />)}
+      <polyline fill="none" points={points.map(({ x, y }) => `${x},${y}`).join(' ')} stroke="#225e85" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
+      {points.map(({ x, y, entry }) => <circle key={entry.id} cx={x} cy={y} fill="#4d98c7" r="4" stroke="#071a2f" strokeWidth="1.5" />)}
     </svg>
   );
 }

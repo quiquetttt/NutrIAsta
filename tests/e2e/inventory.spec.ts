@@ -14,11 +14,11 @@ test('mantiene inventario, agotamiento, compra y movimientos en una operación t
   await page.getByRole('button', { name: 'Añadir al inventario' }).click();
   await expect(page.getByText('200 g', { exact: true })).toBeVisible();
 
-  await openMvpSection(page, 'Hoy');
+  await openMvpSection(page, 'Diario');
   await page.getByLabel('Cantidad', { exact: true }).fill('200');
   await page.getByRole('button', { name: 'Añadir alimento a la comida' }).click();
   await expect(page.getByRole('heading', { name: 'Consumir Inventario ficticio' })).toBeVisible();
-  await expect(page.getByText('Inventario suficiente · descuento completo')).toBeVisible();
+  await expect(page.getByText('⚠ Se va a acabar · el saldo final será 0 g')).toBeVisible();
   await page.getByLabel('Añadir a la lista de la compra').check();
   await page.getByRole('button', { name: 'Confirmar consumo' }).click();
   await expect(page.getByText(/Subtotal conjunto: 200\.0 kcal/)).toBeVisible();
@@ -41,7 +41,7 @@ test('cancelar la revisión de consumo no escribe nutrición, inventario, decisi
   await page.getByLabel('Nombre', { exact: true }).fill('Cancelación ficticia');
   await page.getByLabel('Energía (kcal)').fill('100');
   await page.getByRole('button', { name: 'Guardar alimento' }).click();
-  await openMvpSection(page, 'Hoy');
+  await openMvpSection(page, 'Diario');
 
   const before = await functionalCounts(page);
   await page.getByRole('button', { name: 'Añadir alimento a la comida' }).click();

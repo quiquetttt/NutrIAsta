@@ -9,7 +9,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta
           name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+          content="width=device-width, initial-scale=1, viewport-fit=cover"
         />
         <meta name="theme-color" content="#071a2f" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -122,6 +122,9 @@ const rootStyles = `
   .na-history-row { display: flex; width: 100%; min-width: 0; min-height: 50px; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; color: var(--na-ink); text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--na-border); }
   .na-history-row > span { display: grid; min-width: 0; gap: 2px; }
   .na-history-row small { overflow: hidden; color: var(--na-muted); text-overflow: ellipsis; white-space: nowrap; }
+  .na-today-grid, .na-today-pair { display: grid; min-width: 0; gap: 16px; }
+  .na-today-pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .na-today-wide { min-width: 0; }
   .na-weight-chart { display: block; width: 100%; max-height: 260px; color: var(--na-ink); background: linear-gradient(#f9fbfa, #fff); border: 1px solid var(--na-border); border-radius: 16px; }
   .na-weight-empty { padding: 24px; color: var(--na-muted); text-align: center; background: #f9fbfa; border: 1px dashed var(--na-border); border-radius: 16px; }
   .na-dialog {
@@ -165,6 +168,9 @@ const rootStyles = `
     .na-content { max-width: 980px; padding: 24px 32px 64px; }
     .na-bottom-nav { display: none; }
     .na-dialog { margin: auto; border-radius: 24px; }
+    .na-today-grid { grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr); align-items: start; }
+    .na-today-wide { grid-column: 1 / -1; }
+    .na-today-pair { grid-template-columns: minmax(0, 1fr); }
   }
   @media (max-width: 340px) {
     .na-content { padding-right: 12px; padding-left: 12px; }

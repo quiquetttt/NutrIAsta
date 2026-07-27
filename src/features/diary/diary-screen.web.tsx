@@ -67,6 +67,10 @@ export function DiaryScreen() {
     const [pendingReview, setPendingReview] = useState<PendingConsumptionReview | null>(null);
     const [reviewChoices, setReviewChoices] = useState<ConsumptionChoice[]>([]);
     const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+    const [copyDaySource, setCopyDaySource] = useState<string | null>(null);
+    const [copyMeal, setCopyMeal] = useState<MealView | null>(null);
+    const [copyMealTarget, setCopyMealTarget] = useState('');
+    const [waterEdit, setWaterEdit] = useState<{ id: string; amount: number } | null>(null);
     async function refresh() { const [nextView, nextFoods, nextRecipes, nextProfile, nextRecentMeals, nextSources] = await Promise.all([diaryRepository.get(date), foodRepository.list(), recipeRepository.list(), profileRepository.getProfile(), diaryRepository.recentMeals(), diaryRepository.recentSources()]); setView(nextView); setFoods(nextFoods); setRecipes(nextRecipes); setProfile(nextProfile); setRecentMeals(nextRecentMeals); setRecentSources(nextSources); setFoodId((current) => current && nextFoods.some((food) => food.id === current) ? current : nextFoods[0]?.id ?? ''); setRecipeId((current) => current && nextRecipes.some((recipe) => recipe.id === current) ? current : nextRecipes[0]?.id ?? ''); setTrained(nextView.training?.trained ?? false); trainingTypeRef.current = nextView.training?.trainingType ?? ''; trainingNoteRef.current = nextView.training?.note ?? ''; setTrainingType(trainingTypeRef.current); setTrainingNote(trainingNoteRef.current); }
     useEffect(() => { setAddState(date > madridToday() ? 'planned' : 'consumed'); setDestinationId('new'); void refresh().catch((caught) => setError(messageFor(caught))); }, [date]);
     useEffect(() => { const food = foods.find((value) => value.id === foodId); if (food)
@@ -182,8 +186,7 @@ export function DiaryScreen() {
     const destinationChoices = [['new', `Nueva ${labelFor(mealType).toLocaleLowerCase('es-ES')}`], ...destinationMeals.map((meal) => [meal.id, `${meal.label} · ${meal.items.length} elementos · ${timeFor(meal)}`])];
     return <View style={{ gap: 16 }}>
     {error ? <Notice danger text={error}/> : message ? <Notice text={message}/> : null}
-    <Card><SectionTitle eyebrow="Diario">Fecha</SectionTitle><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}><ActionButton tone="secondary" label="Día anterior" onPress={() => setDate(shiftDate(date, -1))}/><ActionButton tone="secondary" label="Día siguiente" onPress={() => setDate(shiftDate(date, 1))}/></View><TextInput accessibilityLabel="Fecha del diario" value={date} onChangeText={setDate} style={input}/><StatusPill label={date === madridToday() ? 'Hoy' : date > madridToday() ? 'Futuro' : 'Histórico'} tone={date === madridToday() ? 'good' : 'neutral'}/><ActionButton tone="secondary" label="Copiar otro día a esta fecha" onPress={() => { const source = window.prompt('Fecha de origen (AAAA-MM-DD)'); if (source)
-        askAction({ title: 'Copiar día', description: `Se copiarán todas las comidas de ${source} a ${date} con instantáneas independientes.`, confirmLabel: 'Copiar día', success: 'Día copiado con sus snapshots.', commit: () => diaryRepository.copyDay(source, date) }); }}/></Card>
+    <Card><SectionTitle eyebrow="Diario">Fecha</SectionTitle><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}><ActionButton tone="secondary" label="Día anterior" onPress={() => setDate(shiftDate(date, -1))}/><ActionButton tone="secondary" label="Volver a hoy" onPress={() => setDate(madridToday())}/><ActionButton tone="secondary" label="Día siguiente" onPress={() => setDate(shiftDate(date, 1))}/></View><TextInput accessibilityLabel="Fecha del diario" value={date} onChangeText={setDate} style={input}/><StatusPill label={date === madridToday() ? 'Hoy' : date > madridToday() ? 'Futuro' : 'Histórico'} tone={date === madridToday() ? 'good' : 'neutral'}/><ActionButton tone="secondary" label="Copiar otro día a esta fecha" onPress={() => setCopyDaySource(shiftDate(date, -1))}/></Card>
     <Card><SectionTitle eyebrow="Resumen consumido">Totales del día</SectionTitle><NutritionLine label="Calorías" consumed={view?.totals.energyKcal ?? 0} target={view?.day.targetSnapshot.caloriesKcal ?? 0} unit="kcal"/><NutritionLine label="Proteínas" consumed={view?.totals.proteinG ?? 0} target={view?.day.targetSnapshot.proteinG ?? 0} unit="g"/><NutritionLine label="Carbohidratos" consumed={view?.totals.carbohydratesG ?? 0} target={view?.day.targetSnapshot.carbohydratesG ?? 0} unit="g"/><NutritionLine label="Grasas" consumed={view?.totals.fatG ?? 0} target={view?.day.targetSnapshot.fatG ?? 0} unit="g"/><Text selectable style={{ color: palette.muted }}>Planificado aparte: {(view?.plannedTotals.energyKcal ?? 0).toFixed(1)} kcal · P {(view?.plannedTotals.proteinG ?? 0).toFixed(1)} · C {(view?.plannedTotals.carbohydratesG ?? 0).toFixed(1)} · G {(view?.plannedTotals.fatG ?? 0).toFixed(1)}.</Text></Card>
     {recentSources.length || recentMeals.length ? <Card><SectionTitle eyebrow="Acceso rápido">Recientes</SectionTitle><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{recentSources.map((item) => <ActionButton key={item.id} tone="secondary" label={`Usar reciente: ${item.nutritionSnapshot.name}`} onPress={() => { if (item.sourceType === 'food')
         setFoodId(item.sourceId);
@@ -273,16 +276,60 @@ export function DiaryScreen() {
             commit: () => inventoryConsumptionService.returnMealToPlanned(meal.id, createId('return-planned')),
           })}/>
         )}
-        <ActionButton tone="secondary" label={`Copiar ${meal.label}`} onPress={() => {
-          const target = window.prompt('Fecha de destino (AAAA-MM-DD)', shiftDate(date, 1));
-          if (target) askAction({ title: `Copiar ${meal.label}`, description: `Se creará una copia independiente en ${target}.`, confirmLabel: 'Copiar comida', success: 'Comida copiada con sus snapshots.', commit: () => diaryRepository.copyMeal(meal.id, target) });
-        }}/>
+        <ActionButton tone="secondary" label={`Copiar ${meal.label}`} onPress={() => { setCopyMeal(meal); setCopyMealTarget(shiftDate(date, 1)); }}/>
         <Text selectable style={{ color: palette.ink, fontWeight: '900' }}>Subtotal conjunto: {meal.totals.energyKcal.toFixed(1)} kcal · P {meal.totals.proteinG.toFixed(1)} · C {meal.totals.carbohydratesG.toFixed(1)} · G {meal.totals.fatG.toFixed(1)}</Text>
       </Card>
     ))}
-    <Card><SectionTitle eyebrow="Hidratación">Agua</SectionTitle><Text selectable style={{ color: palette.ink, fontSize: 22, fontWeight: '800' }}>{waterTotal} ml {view?.day.targetSnapshot.waterMl ? `de ${view.day.targetSnapshot.waterMl} ml` : ''}</Text><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{quickWater.map((amount) => <ActionButton key={amount} tone="secondary" label={`+${amount} ml`} onPress={() => void run('Agua añadida.', () => diaryRepository.addWater(date, amount).then(() => undefined))}/>)}</View><NumberField label="Cantidad personalizada (ml)" value={water} onChange={setWater}/><ActionButton label="Añadir agua" onPress={() => void run('Agua añadida.', () => diaryRepository.addWater(date, water).then(() => undefined))}/>{view?.water.map((entry) => <View key={entry.id} style={{ borderTopWidth: 1, borderTopColor: palette.border, paddingTop: 10, gap: 8 }}><Text selectable style={{ color: palette.ink }}>{entry.amountMl} ml · {new Date(entry.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</Text><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}><ActionButton tone="secondary" label="Editar" accessibilityLabel={`Editar agua ${entry.id}`} onPress={() => { const next = window.prompt('Nueva cantidad en ml', String(entry.amountMl)); if (next)
-        void run('Agua actualizada.', () => diaryRepository.updateWater(entry.id, Number(next))); }}/><ActionButton tone="danger" label="Eliminar" accessibilityLabel={`Eliminar agua ${entry.id}`} onPress={() => askAction({ title: 'Eliminar entrada de agua', description: `Se eliminarán ${entry.amountMl} ml del diario.`, confirmLabel: 'Eliminar agua', success: 'Agua eliminada.', danger: true, commit: () => diaryRepository.deleteWater(entry.id) })}/></View></View>)}</Card>
+    <Card><SectionTitle eyebrow="Hidratación">Agua</SectionTitle><Text selectable style={{ color: palette.ink, fontSize: 22, fontWeight: '800' }}>{waterTotal} ml {view?.day.targetSnapshot.waterMl ? `de ${view.day.targetSnapshot.waterMl} ml` : ''}</Text><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{quickWater.map((amount) => <ActionButton key={amount} tone="secondary" label={`+${amount} ml`} onPress={() => void run('Agua añadida.', () => diaryRepository.addWater(date, amount).then(() => undefined))}/>)}</View><NumberField label="Cantidad personalizada (ml)" value={water} onChange={setWater}/><ActionButton label="Añadir agua" onPress={() => void run('Agua añadida.', () => diaryRepository.addWater(date, water).then(() => undefined))}/>{view?.water.map((entry) => <View key={entry.id} style={{ borderTopWidth: 1, borderTopColor: palette.border, paddingTop: 10, gap: 8 }}><Text selectable style={{ color: palette.ink }}>{entry.amountMl} ml · {new Date(entry.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</Text><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}><ActionButton tone="secondary" label="Editar" accessibilityLabel={`Editar agua ${entry.id}`} onPress={() => setWaterEdit({ id: entry.id, amount: entry.amountMl })}/><ActionButton tone="danger" label="Eliminar" accessibilityLabel={`Eliminar agua ${entry.id}`} onPress={() => askAction({ title: 'Eliminar entrada de agua', description: `Se eliminarán ${entry.amountMl} ml del diario.`, confirmLabel: 'Eliminar agua', success: 'Agua eliminada.', danger: true, commit: () => diaryRepository.deleteWater(entry.id) })}/></View></View>)}</Card>
     <Card><SectionTitle eyebrow="Registro mínimo">Entrenamiento diario</SectionTitle><StatusPill label={trained ? 'Entrenamiento registrado' : 'Sin entrenamiento'} tone={trained ? 'good' : 'neutral'}/><WebField key={`type-${view?.training?.updatedAt ?? date}`} label="Tipo de entrenamiento (opcional)" initialValue={trainingType} onInput={(value) => { trainingTypeRef.current = value; }}/><WebField key={`note-${view?.training?.updatedAt ?? date}`} label="Nota de entrenamiento (opcional)" initialValue={trainingNote} onInput={(value) => { trainingNoteRef.current = value; }}/><ActionButton label="Guardar: sí he entrenado" onPress={() => void run('Entrenamiento diario guardado.', () => { const type = document.querySelector<HTMLInputElement>('[aria-label="Tipo de entrenamiento (opcional)"]')?.value ?? trainingTypeRef.current; const note = document.querySelector<HTMLInputElement>('[aria-label="Nota de entrenamiento (opcional)"]')?.value ?? trainingNoteRef.current; return diaryRepository.saveTraining(date, true, type, note).then(() => undefined); })}/><ActionButton tone="secondary" label="Guardar: no he entrenado" onPress={() => void run('Día marcado sin entrenamiento.', () => diaryRepository.saveTraining(date, false, '', '').then(() => undefined))}/></Card>
+    <AccessibleDialog
+      confirmLabel="Copiar día"
+      description={`Se copiarán todas las comidas de ${copyDaySource ?? ''} a ${date} con instantáneas independientes.`}
+      onCancel={() => setCopyDaySource(null)}
+      onConfirm={() => {
+        if (!copyDaySource) return;
+        void run('Día copiado con sus snapshots.', async () => {
+          await diaryRepository.copyDay(copyDaySource, date);
+          setCopyDaySource(null);
+        });
+      }}
+      open={Boolean(copyDaySource)}
+      title="Copiar día"
+    >
+      <Field label="Fecha de origen (AAAA-MM-DD)" value={copyDaySource ?? ''} onChange={setCopyDaySource}/>
+    </AccessibleDialog>
+    <AccessibleDialog
+      confirmLabel="Copiar comida"
+      description={`Se creará una copia independiente de ${copyMeal?.label ?? 'la comida'} en ${copyMealTarget}.`}
+      onCancel={() => setCopyMeal(null)}
+      onConfirm={() => {
+        if (!copyMeal) return;
+        void run('Comida copiada con sus snapshots.', async () => {
+          await diaryRepository.copyMeal(copyMeal.id, copyMealTarget);
+          setCopyMeal(null);
+        });
+      }}
+      open={Boolean(copyMeal)}
+      title="Copiar comida"
+    >
+      <Field label="Fecha de destino (AAAA-MM-DD)" value={copyMealTarget} onChange={setCopyMealTarget}/>
+    </AccessibleDialog>
+    <AccessibleDialog
+      confirmLabel="Guardar cantidad"
+      description="Solo se modificará esta entrada de agua."
+      onCancel={() => setWaterEdit(null)}
+      onConfirm={() => {
+        if (!waterEdit) return;
+        void run('Agua actualizada.', async () => {
+          await diaryRepository.updateWater(waterEdit.id, waterEdit.amount);
+          setWaterEdit(null);
+        });
+      }}
+      open={Boolean(waterEdit)}
+      title="Editar entrada de agua"
+    >
+      <NumberField label="Nueva cantidad en ml" value={waterEdit?.amount ?? 0} onChange={(amount) => setWaterEdit((current) => current ? { ...current, amount } : null)}/>
+    </AccessibleDialog>
     <ConsumptionReviewDialog
       busy={busy}
       choices={reviewChoices}
