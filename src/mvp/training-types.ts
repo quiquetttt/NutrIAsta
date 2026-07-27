@@ -75,6 +75,10 @@ export interface TrainingSet {
   order: number;
   repetitions: number | null;
   loadKg: number | null;
+  plannedRepetitions?: number | null;
+  plannedLoadKg?: number | null;
+  actualRepetitions?: number | null;
+  actualLoadKg?: number | null;
   completed: boolean;
   note: string;
   createdAt: string;

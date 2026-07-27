@@ -65,7 +65,7 @@ export function AccessibleDialog({
       </button>
       <View style={{ gap: 6, paddingRight: 46 }}>
         {eyebrow ? <Text selectable style={{ color: palette.greenDark, fontSize: 12, fontWeight: '900', letterSpacing: 0.8 }}>{eyebrow.toUpperCase()}</Text> : null}
-        <Text accessibilityRole="heading" nativeID={titleId} selectable style={{ color: palette.ink, fontSize: 22, fontWeight: '900' }}>{title}</Text>
+        <h2 id={titleId} style={{ color: palette.ink, fontSize: 22, fontWeight: 900, margin: 0 }}>{title}</h2>
         {description ? <Text nativeID={descriptionId} selectable style={{ color: palette.muted, lineHeight: 21 }}>{description}</Text> : null}
       </View>
       {children}

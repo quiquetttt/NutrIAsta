@@ -16,40 +16,82 @@ export interface SessionExerciseView {
   sets: TrainingSet[];
 }
 
+export interface CatalogExerciseInput {
+  name: string;
+  primaryTrainingTypeId?: string;
+  secondaryTrainingTypeIds?: string[];
+  note?: string;
+}
+
+export interface TrainingSetInput {
+  plannedRepetitions: number | null;
+  plannedLoadKg: number | null;
+  actualRepetitions: number | null;
+  actualLoadKg: number | null;
+  completed: boolean;
+  note?: string;
+}
+
 export class TrainingDetailRepository {
   constructor(private readonly db: NutrIAstaMainDatabase = mainDatabase) {}
 
-  async listCatalog(): Promise<ExerciseCatalogItem[]> {
+  async listCatalog(includeArchived = false): Promise<ExerciseCatalogItem[]> {
     const datasetId = await this.activeDatasetId();
     return (await this.db.exerciseCatalog.where('datasetId').equals(datasetId).toArray())
-      .filter(({ archived }) => !archived)
+      .filter(({ archived }) => includeArchived || !archived)
       .sort((left, right) => left.name.localeCompare(right.name, 'es'));
   }
 
   async createCatalogExercise(name: string, note = ''): Promise<ExerciseCatalogItem> {
+    return this.saveCatalogExercise({ name, note });
+  }
+
+  async saveCatalogExercise(input: CatalogExerciseInput, id?: string): Promise<ExerciseCatalogItem> {
     const datasetId = await this.activeDatasetId();
-    const clean = cleanName(name);
+    const clean = cleanName(input.name);
     const normalizedName = normalizeName(clean);
+    const typeIds = [
+      input.primaryTrainingTypeId,
+      ...(input.secondaryTrainingTypeIds ?? []),
+    ].filter((value): value is string => Boolean(value));
+    const availableTypes = await this.db.trainingTypes.where('datasetId').equals(datasetId).toArray();
+    if (typeIds.some((typeId) => !availableTypes.some(({ id: candidateId, archived }) => candidateId === typeId && !archived))) {
+      throw new Error('Uno de los tipos del ejercicio no está disponible.');
+    }
     const now = new Date().toISOString();
+    const previous = id ? await this.db.exerciseCatalog.get([datasetId, id]) : undefined;
+    if (id && !previous) throw new Error('El ejercicio del catálogo no existe.');
     const value: ExerciseCatalogItem = {
       datasetId,
-      id: createId('exercise'),
+      id: previous?.id ?? createId('exercise'),
       name: clean,
       normalizedName,
-      secondaryTrainingTypeIds: [],
-      note: note.trim().slice(0, 500),
-      archived: false,
-      createdAt: now,
+      primaryTrainingTypeId: input.primaryTrainingTypeId || undefined,
+      secondaryTrainingTypeIds: [...new Set(input.secondaryTrainingTypeIds ?? [])]
+        .filter((typeId) => typeId !== input.primaryTrainingTypeId),
+      note: (input.note ?? '').trim().slice(0, 500),
+      archived: previous?.archived ?? false,
+      createdAt: previous?.createdAt ?? now,
       updatedAt: now,
     };
     await trackWrite(() => this.db.transaction('rw', this.db.metadata, this.db.exerciseCatalog, async () => {
       await this.assertActive(datasetId);
       const duplicate = (await this.db.exerciseCatalog.where('datasetId').equals(datasetId).toArray())
-        .some((item) => !item.archived && item.normalizedName === normalizedName);
+        .some((item) => item.id !== value.id && !item.archived && item.normalizedName === normalizedName);
       if (duplicate) throw new Error('Ya existe un ejercicio activo con ese nombre.');
-      await this.db.exerciseCatalog.add(value);
+      await this.db.exerciseCatalog.put(value);
     }));
     return value;
+  }
+
+  async setCatalogExerciseArchived(id: string, archived: boolean): Promise<void> {
+    const datasetId = await this.activeDatasetId();
+    await trackWrite(() => this.db.transaction('rw', this.db.metadata, this.db.exerciseCatalog, async () => {
+      await this.assertActive(datasetId);
+      const value = await this.db.exerciseCatalog.get([datasetId, id]);
+      if (!value) throw new Error('El ejercicio del catálogo no existe.');
+      await this.db.exerciseCatalog.update([datasetId, id], { archived, updatedAt: new Date().toISOString() });
+    }));
   }
 
   async sessionDetails(sessionId: string): Promise<SessionExerciseView[]> {
@@ -121,9 +163,9 @@ export class TrainingDetailRepository {
 
   async addSet(
     sessionExerciseId: string,
-    input: { repetitions: number | null; loadKg: number | null; completed: boolean; note?: string },
+    input: TrainingSetInput,
   ): Promise<TrainingSet> {
-    validateSet(input.repetitions, input.loadKg);
+    validateSetInput(input);
     const datasetId = await this.activeDatasetId();
     const exercise = await this.db.trainingSessionExercises.get([datasetId, sessionExerciseId]);
     if (!exercise) throw new Error('El ejercicio de sesión no existe.');
@@ -137,8 +179,12 @@ export class TrainingDetailRepository {
       id: createId('training-set'),
       sessionExerciseId,
       order,
-      repetitions: input.repetitions,
-      loadKg: input.loadKg,
+      repetitions: input.completed ? input.actualRepetitions : input.plannedRepetitions,
+      loadKg: input.completed ? input.actualLoadKg : input.plannedLoadKg,
+      plannedRepetitions: input.plannedRepetitions,
+      plannedLoadKg: input.plannedLoadKg,
+      actualRepetitions: input.actualRepetitions,
+      actualLoadKg: input.actualLoadKg,
       completed: input.completed,
       note: (input.note ?? '').trim().slice(0, 300),
       createdAt: now,
@@ -153,15 +199,21 @@ export class TrainingDetailRepository {
 
   async updateSet(
     id: string,
-    input: { repetitions: number | null; loadKg: number | null; completed: boolean; note?: string },
+    input: TrainingSetInput,
   ): Promise<void> {
-    validateSet(input.repetitions, input.loadKg);
+    validateSetInput(input);
     const datasetId = await this.activeDatasetId();
     await trackWrite(() => this.db.transaction('rw', this.db.metadata, this.db.trainingSets, async () => {
       await this.assertActive(datasetId);
       if (!await this.db.trainingSets.get([datasetId, id])) throw new Error('La serie no existe.');
       await this.db.trainingSets.update([datasetId, id], {
-        ...input,
+        repetitions: input.completed ? input.actualRepetitions : input.plannedRepetitions,
+        loadKg: input.completed ? input.actualLoadKg : input.plannedLoadKg,
+        plannedRepetitions: input.plannedRepetitions,
+        plannedLoadKg: input.plannedLoadKg,
+        actualRepetitions: input.actualRepetitions,
+        actualLoadKg: input.actualLoadKg,
+        completed: input.completed,
         note: (input.note ?? '').trim().slice(0, 300),
         updatedAt: new Date().toISOString(),
       });
@@ -210,12 +262,16 @@ function cleanName(value: string) {
 function normalizeName(value: string) {
   return value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('es');
 }
-function validateSet(repetitions: number | null, loadKg: number | null) {
-  if (repetitions !== null && (!Number.isInteger(repetitions) || repetitions < 0 || repetitions > 10_000)) {
-    throw new Error('Las repeticiones deben ser un entero no negativo.');
+function validateSetInput(input: TrainingSetInput) {
+  for (const repetitions of [input.plannedRepetitions, input.actualRepetitions]) {
+    if (repetitions !== null && (!Number.isInteger(repetitions) || repetitions < 0 || repetitions > 10_000)) {
+      throw new Error('Las repeticiones deben ser un entero no negativo.');
+    }
   }
-  if (loadKg !== null && (!Number.isFinite(loadKg) || loadKg < 0 || loadKg > 10_000)) {
-    throw new Error('La carga debe ser un número no negativo.');
+  for (const loadKg of [input.plannedLoadKg, input.actualLoadKg]) {
+    if (loadKg !== null && (!Number.isFinite(loadKg) || loadKg < 0 || loadKg > 10_000)) {
+      throw new Error('La carga debe ser un número no negativo.');
+    }
   }
 }
 

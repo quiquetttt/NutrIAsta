@@ -31,6 +31,24 @@ export interface TrainingSessionDraft {
   trainingTypeIds: string[];
 }
 
+export interface TrainingHistoryFilters {
+  query?: string;
+  from?: string;
+  to?: string;
+  trainingTypeIds?: string[];
+}
+
+export interface WeeklyTrainingSummary {
+  monday: string;
+  sunday: string;
+  completed: number;
+  planned: number;
+  cancelled: number;
+  goal: number;
+  percentage: number;
+  fulfillmentText: string;
+}
+
 export class TrainingRepository {
   constructor(
     private readonly db: NutrIAstaMainDatabase = mainDatabase,
@@ -94,13 +112,39 @@ export class TrainingRepository {
   }
 
   async archiveType(id: string): Promise<void> {
+    await this.setCustomTypeArchived(id, true);
+  }
+
+  async renameCustomType(id: string, name: string): Promise<void> {
+    const datasetId = await this.activeDatasetId();
+    const clean = name.trim().replace(/\s+/g, ' ');
+    if (clean.length < 2 || clean.length > 40) throw new Error('El tipo debe tener entre 2 y 40 caracteres.');
+    const normalizedName = normalizeName(clean);
+    await trackWrite(() => this.db.transaction('rw', this.db.metadata, this.db.trainingTypes, async () => {
+      await this.assertActive(datasetId);
+      const value = await this.db.trainingTypes.get([datasetId, id]);
+      if (!value) throw new Error('El tipo de entrenamiento no existe.');
+      if (value.origin !== 'custom') throw new Error('Los tipos iniciales no se pueden renombrar.');
+      const duplicate = (await this.db.trainingTypes.where('datasetId').equals(datasetId).toArray())
+        .some((type) => type.id !== id && !type.archived && type.normalizedName === normalizedName);
+      if (duplicate) throw new Error('Ya existe un tipo activo con ese nombre.');
+      await this.db.trainingTypes.update([datasetId, id], {
+        name: clean,
+        normalizedName,
+        updatedAt: new Date().toISOString(),
+      });
+    }));
+  }
+
+  async setCustomTypeArchived(id: string, archived: boolean): Promise<void> {
     const datasetId = await this.activeDatasetId();
     await trackWrite(() => this.db.transaction('rw', this.db.metadata, this.db.trainingTypes, async () => {
       await this.assertActive(datasetId);
       const value = await this.db.trainingTypes.get([datasetId, id]);
       if (!value) throw new Error('El tipo de entrenamiento no existe.');
+      if (value.origin !== 'custom') throw new Error('Los tipos iniciales no se pueden archivar.');
       await this.db.trainingTypes.update([datasetId, id], {
-        archived: true,
+        archived,
         updatedAt: new Date().toISOString(),
       });
     }));
@@ -159,9 +203,22 @@ export class TrainingRepository {
       .sortBy('localDate');
   }
 
-  async listHistory(): Promise<TrainingSession[]> {
+  async listHistory(filters: TrainingHistoryFilters = {}): Promise<TrainingSession[]> {
+    if (filters.from) parseLocalDate(filters.from);
+    if (filters.to) parseLocalDate(filters.to);
+    if (filters.from && filters.to && filters.to < filters.from) throw new Error('El intervalo del historial no es válido.');
     const datasetId = await this.activeDatasetId();
+    const query = normalizeName(filters.query?.trim() ?? '');
+    const typeIds = new Set(filters.trainingTypeIds ?? []);
     return (await this.db.trainingSessions.where('datasetId').equals(datasetId).toArray())
+      .filter((session) => !filters.from || session.localDate >= filters.from)
+      .filter((session) => !filters.to || session.localDate <= filters.to)
+      .filter((session) => typeIds.size === 0 || session.trainingTypes.some(({ trainingTypeId }) => typeIds.has(trainingTypeId)))
+      .filter((session) => !query || normalizeName([
+        session.title,
+        session.note,
+        ...session.trainingTypes.map(({ nameSnapshot }) => nameSnapshot),
+      ].join(' ')).includes(query))
       .sort((left, right) => right.localDate.localeCompare(left.localDate) || right.updatedAt.localeCompare(left.updatedAt));
   }
 
@@ -260,6 +317,12 @@ export class TrainingRepository {
           ...set,
           id: createId('training-set'),
           sessionExerciseId: exerciseCopy.id,
+          repetitions: set.plannedRepetitions ?? set.repetitions,
+          loadKg: set.plannedLoadKg ?? set.loadKg,
+          plannedRepetitions: set.plannedRepetitions ?? set.repetitions,
+          plannedLoadKg: set.plannedLoadKg ?? set.loadKg,
+          actualRepetitions: null,
+          actualLoadKg: null,
           completed: false,
           createdAt: now,
           updatedAt: now,
@@ -269,15 +332,26 @@ export class TrainingRepository {
     return copy;
   }
 
-  async weeklySummary(localDate: string): Promise<{ monday: string; sunday: string; completed: number; goal: number }> {
+  async weeklySummary(localDate: string): Promise<WeeklyTrainingSummary> {
     const monday = mondayOfLocalWeek(localDate);
     const sunday = addLocalDays(monday, 6);
     const [sessions, setting] = await Promise.all([this.listSessions(monday, sunday), this.goalForWeek(monday)]);
+    const completed = sessions.filter(({ status }) => status === 'completed').length;
+    const planned = sessions.filter(({ status }) => status === 'planned').length;
+    const cancelled = sessions.filter(({ status }) => status === 'cancelled').length;
+    const goal = setting?.weeklyGoal ?? 4;
+    const percentage = Math.min(100, Math.round((completed / Math.max(1, goal)) * 100));
     return {
       monday,
       sunday,
-      completed: sessions.filter(({ status }) => status === 'completed').length,
-      goal: setting?.weeklyGoal ?? 4,
+      completed,
+      planned,
+      cancelled,
+      goal,
+      percentage,
+      fulfillmentText: completed >= goal
+        ? `Objetivo cumplido: ${completed} de ${goal} sesiones realizadas.`
+        : `Faltan ${goal - completed} sesiones para el objetivo semanal.`,
     };
   }
 

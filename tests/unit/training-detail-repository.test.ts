@@ -32,9 +32,58 @@ describe('ejercicios y series opcionales', () => {
     const exercise = await details.addExercise(session.id, { catalogExerciseId: catalog.id, name: catalog.name });
     expect((await details.sessionDetails(session.id))[0]?.sets).toEqual([]);
 
-    await details.addSet(exercise.id, { repetitions: null, loadKg: 0, completed: true });
-    expect((await details.sessionDetails(session.id))[0]?.sets[0]).toMatchObject({ repetitions: null, loadKg: 0, completed: true });
-    await expect(details.addSet(exercise.id, { repetitions: -1, loadKg: null, completed: false })).rejects.toThrow(/no negativo/);
-    await expect(details.addSet(exercise.id, { repetitions: 8, loadKg: -2, completed: false })).rejects.toThrow(/no negativo/);
+    await details.addSet(exercise.id, setInput(null, 0, null, 0, true));
+    expect((await details.sessionDetails(session.id))[0]?.sets[0]).toMatchObject({
+      plannedRepetitions: null,
+      plannedLoadKg: 0,
+      actualRepetitions: null,
+      actualLoadKg: 0,
+      completed: true,
+    });
+    await expect(details.addSet(exercise.id, setInput(-1, null, null, null, false))).rejects.toThrow(/no negativo/);
+    await expect(details.addSet(exercise.id, setInput(8, -2, null, null, false))).rejects.toThrow(/no negativo/);
+  });
+
+  it('edita catálogo con tipos y nota, archiva sin alterar instantáneas y edita plan y resultado', async () => {
+    database = new NutrIAstaMainDatabase(`training-detail-catalog-${crypto.randomUUID()}`);
+    await database.open();
+    await database.metadata.bulkPut([
+      { key: 'activeSource', value: 'main' },
+      { key: 'activeMainDatasetId', value: 'dataset-ficticio' },
+    ]);
+    const training = new TrainingRepository(database, new TrainingInitializer(database));
+    const details = new TrainingDetailRepository(database);
+    await training.initialize('2026-07-20');
+    const [primary, secondary] = await training.listTypes();
+    const catalog = await details.saveCatalogExercise({
+      name: 'Press ficticio',
+      note: 'Nota de catálogo ficticia',
+      primaryTrainingTypeId: primary!.id,
+      secondaryTrainingTypeIds: [secondary!.id],
+    });
+    const session = await training.saveSession({ status: 'planned', localDate: '2026-07-20', title: '', note: '', trainingTypeIds: [primary!.id] });
+    const exercise = await details.addExercise(session.id, { catalogExerciseId: catalog.id, name: catalog.name, note: 'Instantánea ficticia' });
+    const set = await details.addSet(exercise.id, setInput(10, 20, null, null, false));
+
+    await details.updateSet(set.id, setInput(10, 20, 9, 22.5, true));
+    await details.saveCatalogExercise({ name: 'Press renombrado', note: 'Nueva nota', primaryTrainingTypeId: secondary!.id }, catalog.id);
+    await details.setCatalogExerciseArchived(catalog.id, true);
+
+    expect(await details.listCatalog()).toEqual([]);
+    expect((await details.listCatalog(true))[0]).toMatchObject({ name: 'Press renombrado', archived: true, primaryTrainingTypeId: secondary!.id });
+    expect((await details.sessionDetails(session.id))[0]).toMatchObject({
+      exercise: { nameSnapshot: 'Press ficticio', note: 'Instantánea ficticia' },
+      sets: [{ plannedRepetitions: 10, plannedLoadKg: 20, actualRepetitions: 9, actualLoadKg: 22.5, completed: true }],
+    });
   });
 });
+
+function setInput(
+  plannedRepetitions: number | null,
+  plannedLoadKg: number | null,
+  actualRepetitions: number | null,
+  actualLoadKg: number | null,
+  completed: boolean,
+) {
+  return { plannedRepetitions, plannedLoadKg, actualRepetitions, actualLoadKg, completed };
+}

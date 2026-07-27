@@ -108,6 +108,7 @@ const rootStyles = `
   .na-calendar-day.is-outside { color: #97a29b; background: #f1f3f2; }
   .na-calendar-day[aria-selected="true"] { outline: 3px solid var(--na-focus); outline-offset: 1px; }
   .na-calendar-day i { position: absolute; right: 3px; bottom: 2px; display: grid; width: 16px; height: 16px; place-items: center; color: #fff; font-size: .58rem; font-style: normal; background: var(--na-navy-soft); border-radius: 50%; }
+  .na-calendar-day > small { display: block; width: 100%; overflow: hidden; padding: 0 1px; color: var(--na-muted); font-size: .5rem; font-weight: 750; line-height: 1.05; text-overflow: ellipsis; white-space: nowrap; }
   .na-calendar-day.is-completed { background: var(--na-mint); border-color: #8eddb6; }
   .na-calendar-day.is-completed i { background: var(--na-green-dark); }
   .na-calendar-day.is-planned { background: #eaf5ff; border-color: #a9cee7; }
@@ -170,6 +171,7 @@ const rootStyles = `
     .na-header { padding-right: 12px; padding-left: 12px; }
     .na-network { padding: 6px 8px; }
     .na-nav-item { font-size: .6rem; }
+    .na-calendar-day > small { display: none; }
   }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 
 import { ActionButton, Card, SectionTitle, palette } from '@/components/ui';
+import { AccessibleDialog } from '@/components/accessible-dialog.web';
 import {
   calendarMonth,
   goalEffectiveMonday,
@@ -16,6 +17,7 @@ import type {
 import {
   trainingRepository,
   type TrainingSessionDraft,
+  type WeeklyTrainingSummary,
 } from '@/storage/training-repository.web';
 import { SessionDetails } from '@/features/training/session-details.web';
 
@@ -34,11 +36,22 @@ export function TrainingScreen() {
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [history, setHistory] = useState<TrainingSession[]>([]);
   const [types, setTypes] = useState<TrainingType[]>([]);
-  const [summary, setSummary] = useState({ monday: '', sunday: '', completed: 0, goal: 4 });
+  const [summary, setSummary] = useState<WeeklyTrainingSummary>({
+    monday: '', sunday: '', completed: 0, planned: 0, cancelled: 0, goal: 4, percentage: 0, fulfillmentText: '',
+  });
   const [draft, setDraft] = useState<TrainingSessionDraft>(EMPTY_DRAFT);
   const [goal, setGoal] = useState(4);
   const [goalChoice, setGoalChoice] = useState<'current' | 'next'>('next');
   const [customType, setCustomType] = useState('');
+  const [editingTypeId, setEditingTypeId] = useState('');
+  const [showArchivedTypes, setShowArchivedTypes] = useState(false);
+  const [historyQuery, setHistoryQuery] = useState('');
+  const [historyFrom, setHistoryFrom] = useState('');
+  const [historyTo, setHistoryTo] = useState('');
+  const [historyTypeId, setHistoryTypeId] = useState('');
+  const [goalReviewOpen, setGoalReviewOpen] = useState(false);
+  const [copySessionId, setCopySessionId] = useState('');
+  const [copyDate, setCopyDate] = useState(TODAY);
   const [editing, setEditing] = useState(false);
   const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -54,7 +67,7 @@ export function TrainingScreen() {
     const [nextSessions, nextHistory, nextTypes, nextSummary] = await Promise.all([
       trainingRepository.listSessions(days[0]!.localDate, days.at(-1)!.localDate),
       trainingRepository.listHistory(),
-      trainingRepository.listTypes(),
+      trainingRepository.listTypes(true),
       trainingRepository.weeklySummary(TODAY),
     ]);
     setSessions(nextSessions);
@@ -93,7 +106,19 @@ export function TrainingScreen() {
   }, [sessions]);
   const selectedSessions = byDate.get(selectedDate) ?? [];
   const effectiveDate = goalEffectiveMonday(TODAY, goalChoice);
-  const completion = Math.min(100, Math.round((summary.completed / Math.max(1, summary.goal)) * 100));
+  const completion = summary.percentage;
+  const filteredHistory = useMemo(() => {
+    const query = normalizeSearch(historyQuery);
+    return history
+      .filter((session) => !historyFrom || session.localDate >= historyFrom)
+      .filter((session) => !historyTo || session.localDate <= historyTo)
+      .filter((session) => !historyTypeId || session.trainingTypes.some(({ trainingTypeId }) => trainingTypeId === historyTypeId))
+      .filter((session) => !query || normalizeSearch([
+        session.title,
+        session.note,
+        ...session.trainingTypes.map(({ nameSnapshot }) => nameSnapshot),
+      ].join(' ')).includes(query));
+  }, [history, historyFrom, historyQuery, historyTo, historyTypeId]);
 
   function selectDay(localDate: string) {
     setSelectedDate(localDate);
@@ -131,9 +156,16 @@ export function TrainingScreen() {
       <Card style={{ backgroundColor: palette.navy, borderColor: palette.navy }}>
         <SectionTitle eyebrow="SEMANA ACTUAL"><Text style={{ color: '#fff' }}>Objetivo: {summary.completed} de {summary.goal}</Text></SectionTitle>
         <Text selectable style={{ color: '#d7e5ee' }}>{summary.monday} a {summary.sunday} · cada sesión completada cuenta una vez.</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          <Text selectable style={summaryMetric}>Realizadas: {summary.completed}</Text>
+          <Text selectable style={summaryMetric}>Planificadas: {summary.planned}</Text>
+          <Text selectable style={summaryMetric}>Canceladas: {summary.cancelled}</Text>
+          <Text selectable style={summaryMetric}>{summary.percentage}%</Text>
+        </View>
         <View accessibilityLabel={`${completion} por ciento del objetivo semanal`} style={{ height: 10, overflow: 'hidden', backgroundColor: '#29435c', borderRadius: 999 }}>
           <View style={{ width: `${completion}%`, height: '100%', backgroundColor: palette.green, borderRadius: 999 }} />
         </View>
+        <Text selectable style={{ color: '#fff', fontWeight: '800' }}>{summary.fulfillmentText}</Text>
       </Card>
 
       <Card>
@@ -162,17 +194,20 @@ export function TrainingScreen() {
         <ActionButton
           disabled={busy}
           label="Guardar objetivo semanal"
-          onPress={() => {
-            const selectedGoal = goalRef.current;
-            const selectedChoice = goalChoiceRef.current;
-            const selectedDate = goalEffectiveMonday(TODAY, selectedChoice);
-            if (!window.confirm(`El objetivo será ${selectedGoal} desde el lunes ${selectedDate}. Las semanas anteriores no cambiarán. ¿Continuar?`)) return;
-            void run('Objetivo semanal guardado.', async () => { await trainingRepository.setWeeklyGoal(selectedGoal, selectedChoice); });
-          }}
+          onPress={() => setGoalReviewOpen(true)}
         />
       </Card>
 
       <Card>
+        <ActionButton
+          label="Volver a hoy"
+          tone="secondary"
+          onPress={() => {
+            setMonth(TODAY.slice(0, 7));
+            setSelectedDate(TODAY);
+            setEditing(false);
+          }}
+        />
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
           <ActionButton accessibilityLabel="Mes anterior" label="‹" tone="secondary" onPress={() => setMonth((value) => moveMonth(value, -1))} />
           <SectionTitle eyebrow="CALENDARIO">{monthLabel(month)}</SectionTitle>
@@ -186,9 +221,12 @@ export function TrainingScreen() {
             const planned = values.some(({ status }) => status === 'planned');
             const cancelled = values.some(({ status }) => status === 'cancelled');
             const state = completed ? 'completed' : planned ? 'planned' : cancelled ? 'cancelled' : 'empty';
+            const states = [...new Set(values.map(({ status }) => statusLabel(status)))];
+            const dayTypes = [...new Set(values.flatMap(({ trainingTypes }) => trainingTypes.map(({ nameSnapshot }) => nameSnapshot)))];
+            const details = values.length ? `${states.join(', ')}; tipos: ${dayTypes.join(', ') || 'sin tipo'}` : 'sin entrenamiento';
             return (
               <button
-                aria-label={`${day.localDate}: ${calendarStateLabel(state)}`}
+                aria-label={`${day.localDate}: ${details}`}
                 aria-selected={selectedDate === day.localDate}
                 className={`na-calendar-day is-${state} ${day.inMonth ? '' : 'is-outside'}`}
                 key={day.localDate}
@@ -198,6 +236,7 @@ export function TrainingScreen() {
               >
                 <span>{day.dayNumber}</span>
                 {values.length ? <i aria-hidden="true">{values.length}</i> : null}
+                {dayTypes.length ? <small aria-hidden="true">{dayTypes.slice(0, 2).join(' + ')}</small> : null}
               </button>
             );
           })}
@@ -225,8 +264,8 @@ export function TrainingScreen() {
               {session.status !== 'completed' ? <ActionButton label="Marcar completada" onPress={() => void run('Sesión completada.', () => trainingRepository.changeStatus(session.id, 'completed'))} /> : null}
               {session.status === 'planned' ? <ActionButton label="Cancelar sesión" tone="secondary" onPress={() => void run('Sesión cancelada.', () => trainingRepository.changeStatus(session.id, 'cancelled'))} /> : null}
               <ActionButton label="Copiar sesión" tone="secondary" onPress={() => {
-                const date = window.prompt('Nueva fecha de la copia (AAAA-MM-DD)', selectedDate);
-                if (date) void run('Sesión copiada como planificada.', async () => { await trainingRepository.copySession(session.id, date); });
+                setCopySessionId(session.id);
+                setCopyDate(selectedDate);
               }} />
             </View>
           </View>
@@ -255,7 +294,7 @@ export function TrainingScreen() {
           <View style={{ gap: 8 }}>
             <Text selectable style={{ color: palette.ink, fontWeight: '800' }}>Tipos (puedes elegir varios)</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {types.map((type) => <ChoiceButton key={type.id} label={type.name} selected={draft.trainingTypeIds.includes(type.id)} onPress={() => toggleType(type.id)} />)}
+              {types.filter(({ archived }) => !archived).map((type) => <ChoiceButton key={type.id} label={type.name} selected={draft.trainingTypeIds.includes(type.id)} onPress={() => toggleType(type.id)} />)}
             </View>
           </View>
           <Field label="Hora opcional (HH:MM)" value={draft.startTime ?? ''} onChange={(value) => setDraft({ ...draft, startTime: value || undefined })} />
@@ -272,22 +311,88 @@ export function TrainingScreen() {
       <Card>
         <SectionTitle eyebrow="PERSONALIZACIÓN">Tipos de entrenamiento</SectionTitle>
         <Text selectable style={{ color: palette.muted }}>Los nueve tipos iniciales se guardan localmente. Puedes añadir tipos propios; archivar no cambia sesiones anteriores.</Text>
-        <Field label="Nuevo tipo personalizado" value={customType} onChange={setCustomType} />
-        <ActionButton label="Añadir tipo" tone="secondary" onPress={() => void run('Tipo personalizado añadido.', async () => {
-          await trainingRepository.addCustomType(customType);
+        <Field label={editingTypeId ? 'Renombrar tipo personalizado' : 'Nuevo tipo personalizado'} value={customType} onChange={setCustomType} />
+        <ActionButton label={editingTypeId ? 'Guardar nombre del tipo' : 'Añadir tipo'} tone="secondary" onPress={() => void run(editingTypeId ? 'Tipo personalizado renombrado.' : 'Tipo personalizado añadido.', async () => {
+          if (editingTypeId) await trainingRepository.renameCustomType(editingTypeId, customType);
+          else await trainingRepository.addCustomType(customType);
           setCustomType('');
+          setEditingTypeId('');
         })} />
+        {editingTypeId ? <ActionButton label="Cancelar cambio de nombre" tone="secondary" onPress={() => { setEditingTypeId(''); setCustomType(''); }} /> : null}
+        <label style={{ alignItems: 'center', color: palette.ink, display: 'flex', gap: 9 }}>
+          <input checked={showArchivedTypes} onChange={(event) => setShowArchivedTypes(event.currentTarget.checked)} type="checkbox" />
+          Mostrar tipos personalizados archivados
+        </label>
+        {types.filter(({ origin, archived }) => origin === 'custom' && (showArchivedTypes || !archived)).map((type) => (
+          <View key={type.id} style={{ borderTopColor: palette.border, borderTopWidth: 1, gap: 8, paddingTop: 10 }}>
+            <Text selectable style={{ color: palette.ink, fontWeight: '900' }}>{type.name}{type.archived ? ' · Archivado' : ''}</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {!type.archived ? <ActionButton label={`Renombrar tipo ${type.name}`} tone="secondary" onPress={() => { setEditingTypeId(type.id); setCustomType(type.name); }} /> : null}
+              <ActionButton
+                label={type.archived ? `Restaurar tipo ${type.name}` : `Archivar tipo ${type.name}`}
+                tone="secondary"
+                onPress={() => void run(type.archived ? 'Tipo restaurado.' : 'Tipo archivado.', () => trainingRepository.setCustomTypeArchived(type.id, !type.archived))}
+              />
+            </View>
+          </View>
+        ))}
       </Card>
 
       <Card>
-        <SectionTitle eyebrow="HISTORIAL">Sesiones recientes</SectionTitle>
-        {history.length === 0 ? <Text selectable style={{ color: palette.muted }}>Todavía no hay sesiones guardadas.</Text> : history.slice(0, 20).map((session) => (
+        <SectionTitle eyebrow="HISTORIAL">Buscar sesiones</SectionTitle>
+        <Field label="Buscar por título, nota o tipo" value={historyQuery} onChange={setHistoryQuery} />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+          <View style={{ flexGrow: 1, minWidth: 150 }}><Field label="Desde (AAAA-MM-DD)" value={historyFrom} onChange={setHistoryFrom} /></View>
+          <View style={{ flexGrow: 1, minWidth: 150 }}><Field label="Hasta (AAAA-MM-DD)" value={historyTo} onChange={setHistoryTo} /></View>
+        </View>
+        <View style={{ gap: 8 }}>
+          <Text selectable style={{ color: palette.ink, fontWeight: '800' }}>Filtrar por tipo</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <ChoiceButton label="Todos" selected={!historyTypeId} onPress={() => setHistoryTypeId('')} />
+            {types.map((type) => <ChoiceButton key={type.id} label={type.name} selected={historyTypeId === type.id} onPress={() => setHistoryTypeId(type.id)} />)}
+          </View>
+        </View>
+        <Text selectable style={{ color: palette.muted }}>{filteredHistory.length} resultado(s). Los nombres son instantáneas históricas.</Text>
+        {filteredHistory.length === 0 ? <Text selectable style={{ color: palette.muted }}>No hay sesiones que coincidan.</Text> : filteredHistory.slice(0, 50).map((session) => (
           <button className="na-history-row" key={session.id} onClick={() => editSession(session)} type="button">
             <span><strong>{session.localDate}</strong><small>{session.title || session.trainingTypes.map(({ nameSnapshot }) => nameSnapshot).join(' + ')}</small></span>
             <StatusLabel status={session.status} />
           </button>
         ))}
       </Card>
+
+      <AccessibleDialog
+        confirmLabel="Guardar objetivo"
+        description={`El objetivo será ${goalRef.current} desde el lunes ${goalEffectiveMonday(TODAY, goalChoiceRef.current)}. Las semanas anteriores no cambiarán.`}
+        onCancel={() => setGoalReviewOpen(false)}
+        onConfirm={() => {
+          const selectedGoal = goalRef.current;
+          const selectedChoice = goalChoiceRef.current;
+          void run('Objetivo semanal guardado.', async () => {
+            await trainingRepository.setWeeklyGoal(selectedGoal, selectedChoice);
+            setGoalReviewOpen(false);
+          });
+        }}
+        open={goalReviewOpen}
+        title="Revisar objetivo semanal"
+      />
+      <AccessibleDialog
+        confirmDisabled={!copyDate}
+        confirmLabel="Crear copia independiente"
+        description="La copia conservará las instantáneas de tipos y ejercicios, quedará planificada y no compartirá series con la sesión original."
+        onCancel={() => setCopySessionId('')}
+        onConfirm={() => {
+          const sessionId = copySessionId;
+          void run('Sesión copiada como planificada.', async () => {
+            await trainingRepository.copySession(sessionId, copyDate);
+            setCopySessionId('');
+          });
+        }}
+        open={Boolean(copySessionId)}
+        title="Copiar sesión"
+      >
+        <Field label="Nueva fecha de la copia (AAAA-MM-DD)" value={copyDate} onChange={setCopyDate} />
+      </AccessibleDialog>
     </>
   );
 }
@@ -323,7 +428,7 @@ function Field({ label, value, onChange, multiline = false }: { label: string; v
   return <View style={{ gap: 6 }}><Text selectable style={{ color: palette.ink, fontWeight: '800' }}>{label}</Text><TextInput accessibilityLabel={label} multiline={multiline} value={value} onChangeText={onChange} style={{ minHeight: multiline ? 96 : 48, borderWidth: 1, borderColor: palette.border, borderRadius: 14, padding: 13, color: palette.ink, backgroundColor: '#f9fbfa', fontSize: 16, textAlignVertical: multiline ? 'top' : 'center' }} /></View>;
 }
 function StatusLabel({ status }: { status: TrainingSessionStatus }) {
-  const label = { draft: 'Borrador', planned: 'Planificada', completed: 'Completada', cancelled: 'Cancelada' }[status];
+  const label = statusLabel(status);
   return <Text selectable style={{ color: status === 'completed' ? palette.greenDark : status === 'cancelled' ? palette.danger : palette.navySoft, fontWeight: '800' }}>{label}</Text>;
 }
 function Notice({ text, danger = false }: { text: string; danger?: boolean }) {
@@ -333,9 +438,13 @@ function monthLabel(value: string) {
   const [year, month] = value.split('-').map(Number);
   return new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(year!, month! - 1, 1)));
 }
-function calendarStateLabel(value: string) {
-  return value === 'completed' ? 'entrenamiento completado' : value === 'planned' ? 'entrenamiento planificado' : value === 'cancelled' ? 'entrenamiento cancelado' : 'sin entrenamiento';
+function statusLabel(status: TrainingSessionStatus) {
+  return { draft: 'Borrador', planned: 'Planificada', completed: 'Completada', cancelled: 'Cancelada' }[status];
+}
+function normalizeSearch(value: string) {
+  return value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('es');
 }
 function errorMessage(value: unknown) {
   return value instanceof Error ? value.message : 'Se ha producido un error inesperado.';
 }
+const summaryMetric = { backgroundColor: '#29435c', borderRadius: 999, color: '#fff', fontSize: 13, fontWeight: '800', paddingHorizontal: 10, paddingVertical: 6 } as const;

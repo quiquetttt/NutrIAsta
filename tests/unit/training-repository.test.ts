@@ -60,7 +60,14 @@ describe('repositorio de entrenamientos', () => {
       trainingTypeIds: [types[2]!.id],
     });
 
-    expect(await repository.weeklySummary('2026-07-22')).toMatchObject({ completed: 1, goal: 4 });
+    expect(await repository.weeklySummary('2026-07-22')).toMatchObject({
+      completed: 1,
+      planned: 1,
+      cancelled: 0,
+      goal: 4,
+      percentage: 25,
+      fulfillmentText: 'Faltan 3 sesiones para el objetivo semanal.',
+    });
     expect(completed.origin).toBe('unplanned');
   });
 
@@ -77,7 +84,14 @@ describe('repositorio de entrenamientos', () => {
     });
     const catalog = await details.createCatalogExercise('Press ficticio');
     const exercise = await details.addExercise(original.id, { catalogExerciseId: catalog.id, name: catalog.name });
-    await details.addSet(exercise.id, { repetitions: 10, loadKg: 0, completed: true, note: 'Serie ficticia' });
+    await details.addSet(exercise.id, {
+      plannedRepetitions: 12,
+      plannedLoadKg: 0,
+      actualRepetitions: 10,
+      actualLoadKg: 2.5,
+      completed: true,
+      note: 'Serie ficticia',
+    });
     const copy = await repository.copySession(original.id, '2026-07-28');
 
     expect(copy).toMatchObject({
@@ -92,7 +106,15 @@ describe('repositorio de entrenamientos', () => {
     const copiedDetails = await details.sessionDetails(copy.id);
     expect(copiedDetails).toHaveLength(1);
     expect(copiedDetails[0]!.exercise.id).not.toBe(originalDetails[0]!.exercise.id);
-    expect(copiedDetails[0]!.sets[0]).toMatchObject({ repetitions: 10, loadKg: 0, completed: false });
+    expect(copiedDetails[0]!.sets[0]).toMatchObject({
+      plannedRepetitions: 12,
+      plannedLoadKg: 0,
+      actualRepetitions: null,
+      actualLoadKg: null,
+      repetitions: 12,
+      loadKg: 0,
+      completed: false,
+    });
     expect(copiedDetails[0]!.sets[0]!.id).not.toBe(originalDetails[0]!.sets[0]!.id);
   });
 
@@ -106,5 +128,24 @@ describe('repositorio de entrenamientos', () => {
     expect(await new TrainingRepository(database!, new TrainingInitializer(database!)).listHistory()).toEqual([]);
     expect(await database!.trainingTypes.where('datasetId').equals('dataset-training-ficticio').count()).toBe(10);
     expect(await database!.trainingTypes.where('datasetId').equals('dataset-otro').count()).toBe(9);
+  });
+
+  it('renombra y archiva tipos personalizados conservando snapshots y filtra el historial', async () => {
+    const repository = await setup();
+    const custom = await repository.addCustomType('Movilidad ficticia');
+    const session = await repository.saveSession({
+      status: 'completed',
+      localDate: '2026-07-22',
+      title: 'Sesión de búsqueda ficticia',
+      note: 'Nota única de historial',
+      trainingTypeIds: [custom.id],
+    });
+    await repository.renameCustomType(custom.id, 'Movilidad renombrada');
+    await repository.setCustomTypeArchived(custom.id, true);
+
+    expect((await repository.listTypes()).some(({ id }) => id === custom.id)).toBe(false);
+    expect((await repository.listTypes(true)).find(({ id }) => id === custom.id)).toMatchObject({ name: 'Movilidad renombrada', archived: true });
+    expect((await repository.listHistory({ query: 'única', from: '2026-07-20', to: '2026-07-25', trainingTypeIds: [custom.id] }))[0]?.id).toBe(session.id);
+    expect((await repository.listHistory())[0]?.trainingTypes[0]?.nameSnapshot).toBe('Movilidad ficticia');
   });
 });
