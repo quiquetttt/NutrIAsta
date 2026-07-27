@@ -1,5 +1,6 @@
 import type { MainMigrationSession } from '@/storage/main-dataset-types';
 import type { FullBackupManifestV3 } from '@/backup/full-backup-v3-types';
+import type { BackupFileDescriptor } from '@/storage/dataset-types';
 
 export const FULL_DATA_TABLES = [
   'legacyViabilityRecords', 'legacyViabilityPhotos', 'profiles', 'nutritionTargetPeriods',
@@ -32,11 +33,31 @@ export interface FullBackupManifest {
   contentFingerprint: string;
 }
 
+export interface LegacyBackupManifestForRestore {
+  format: 'nutriasta-backup';
+  formatVersion: 1;
+  minimumAppVersion: string;
+  appVersion: string;
+  backupId: string;
+  sourceDatasetId: string;
+  exportedAt: string;
+  recordCount: number;
+  photoCount: number;
+  entityCounts: FullBackupManifestV3['entityCounts'];
+  files: BackupFileDescriptor[];
+  contentFingerprint: string;
+}
+
+export type RestorableBackupManifest =
+  | LegacyBackupManifestForRestore
+  | FullBackupManifest
+  | FullBackupManifestV3;
+
 export interface PreparedFullRestore {
   candidateDatasetId: string;
   runId: string;
   previousDatasetId: string;
-  manifest: FullBackupManifest | FullBackupManifestV3;
+  manifest: RestorableBackupManifest;
   payloadBytes: number;
 }
 

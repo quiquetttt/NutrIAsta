@@ -37,6 +37,8 @@ export interface MigrationRun {
   contentFingerprint: string;
   sourceDatasetId: string;
   candidateDatasetId: string;
+  preparedActiveSource?: MainActiveSource;
+  preparedActiveMainDatasetId?: string | null;
   createdAt: string;
   updatedAt: string;
   verifiedAt?: string;

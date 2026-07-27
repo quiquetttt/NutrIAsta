@@ -9,6 +9,7 @@ import type {
   MigrationSourceKind,
 } from '@/storage/main-dataset-types';
 import { MAIN_META_KEYS } from '@/storage/main-schema';
+import { FULL_DATA_TABLES_V3 } from '@/backup/full-backup-v3-types';
 import { trackWrite } from '@/storage/write-tracker';
 import { createId } from '@/utils/crypto';
 
@@ -67,6 +68,10 @@ export class MainDatasetRepository {
     if (await this.getMigrationSession()) {
       throw new Error('Existe una migración pendiente de confirmación o rollback.');
     }
+    const [preparedActiveSource, preparedActiveMainDatasetId] = await Promise.all([
+      this.getActiveSource(),
+      this.getActiveMainDatasetId(),
+    ]);
     const now = new Date().toISOString();
     const datasetId = createId('main-dataset');
     const runId = createId('migration');
@@ -92,6 +97,8 @@ export class MainDatasetRepository {
       contentFingerprint: payload.contentFingerprint,
       sourceDatasetId: payload.sourceDatasetId,
       candidateDatasetId: datasetId,
+      preparedActiveSource,
+      preparedActiveMainDatasetId,
       createdAt: now,
       updatedAt: now,
     };
@@ -211,9 +218,15 @@ export class MainDatasetRepository {
     if (!current || current.candidateDatasetId !== session.candidateDatasetId || current.phase !== 'activated') {
       throw new Error('La migración debe estar activa antes de confirmarla.');
     }
-    if (await this.getActiveSource() !== 'main') throw new Error('La base principal no está activa.');
     const now = new Date().toISOString();
     await trackWrite(() => this.db.transaction('rw', this.db.metadata, this.db.datasets, this.db.migrationRuns, async () => {
+      const [activeSource, activeDataset] = await Promise.all([
+        this.db.metadata.get(MAIN_META_KEYS.activeSource),
+        this.db.metadata.get(MAIN_META_KEYS.activeMainDatasetId),
+      ]);
+      if (activeSource?.value !== 'main' || activeDataset?.value !== current.candidateDatasetId) {
+        throw new Error('El candidato ya no es el dataset activo y no puede confirmarse.');
+      }
       await this.db.datasets.update(current.candidateDatasetId, { confirmedAt: now, updatedAt: now });
       await this.db.migrationRuns.update(current.runId, { state: 'confirmed', confirmedAt: now, updatedAt: now });
       await this.db.metadata.bulkDelete([
@@ -277,13 +290,9 @@ export class MainDatasetRepository {
     const run = await this.getRunByCandidate(datasetId);
     const now = new Date().toISOString();
     await trackWrite(async () => {
-      const datasetTables = [
-        this.db.legacyViabilityRecords, this.db.legacyViabilityPhotos, this.db.profiles,
-        this.db.nutritionTargetPeriods, this.db.foods, this.db.foodPortions, this.db.foodPhotos,
-        this.db.diaryDays, this.db.mealEntries, this.db.mealItems, this.db.waterEntries,
-        this.db.trainingDayFlags, this.db.recipes, this.db.recipeItems,
-      ];
-      for (const table of datasetTables) await table.where('datasetId').equals(datasetId).delete();
+      for (const tableName of FULL_DATA_TABLES_V3) {
+        await this.db.table(tableName).where('datasetId').equals(datasetId).delete();
+      }
       await this.db.transaction('rw', this.db.datasets, this.db.migrationRuns, async () => {
         await this.db.datasets.update(datasetId, {
           state: 'abandoned',

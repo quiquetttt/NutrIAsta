@@ -95,7 +95,7 @@ export function parseFullBackupV3Manifest(
   if (!Number.isFinite(Date.parse(value.exportedAt as string))) {
     throw new Error('La fecha del backup formato 3 no es válida.');
   }
-  compareVersions(value.appVersion as string, value.appVersion as string);
+  compareVersions(value.appVersion as string, APP_VERSION);
   assertBackupAppCompatibility(value.minimumAppVersion as string, currentVersion);
   if (!SHA256.test(value.contentFingerprint as string)) {
     throw new Error('La huella del backup formato 3 no es válida.');

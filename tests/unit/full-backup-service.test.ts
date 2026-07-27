@@ -8,6 +8,8 @@ import { FULL_DATA_TABLES } from '@/backup/full-backup-types';
 import { FULL_BACKUP_DATA_PATH, FULL_BACKUP_MANIFEST_PATH } from '@/backup/full-backup-format';
 import { BlobWriter, TextReader, ZipWriter } from '@zip.js/zip.js';
 import { sha256Text } from '@/utils/crypto';
+import type { BackupManifest } from '@/storage/dataset-types';
+import { MINIMUM_BACKUP_APP_VERSION, RECORDS_PATH } from '@/backup/backup-format';
 
 let database: NutrIAstaMainDatabase | null = null;
 afterEach(async () => { if (database) { database.close(); await database.delete(); database = null; } });
@@ -51,6 +53,47 @@ async function fixture() {
   return { datasetId, service: new FullBackupService(database, repository, async () => ({ usage: 1_000, quota: 500_000_000 })) };
 }
 
+async function countsFor(datasetId: string) {
+  return Object.fromEntries(await Promise.all(FULL_DATA_TABLES_V3.map(async (table) => [
+    table,
+    await database!.table(table).where('datasetId').equals(datasetId).count(),
+  ])));
+}
+
+async function format1File() {
+  const recordsJson = JSON.stringify({ records: [{
+    id: 'registro-prueba-001',
+    text: 'Registro histórico ficticio',
+    createdAt: '2026-07-22T11:00:00.000Z',
+    updatedAt: '2026-07-22T11:00:00.000Z',
+  }] });
+  const manifest: BackupManifest = {
+    format: 'nutriasta-backup',
+    formatVersion: 1,
+    minimumAppVersion: MINIMUM_BACKUP_APP_VERSION,
+    appVersion: '0.1.1',
+    backupId: 'backup-v1-ficticio',
+    sourceDatasetId: 'dataset-v1-ficticio',
+    exportedAt: '2026-07-22T12:00:00.000Z',
+    recordCount: 1,
+    photoCount: 0,
+    files: [{
+      path: RECORDS_PATH,
+      kind: 'records',
+      mimeType: 'application/json',
+      size: new TextEncoder().encode(recordsJson).byteLength,
+      checksum: await sha256Text(recordsJson),
+    }],
+  };
+  const writer = new ZipWriter(new BlobWriter('application/x-nutriasta-backup'), {
+    password: 'clave-ficticia-segura',
+    encryptionStrength: 3,
+  });
+  await writer.add(RECORDS_PATH, new TextReader(recordsJson));
+  await writer.add(FULL_BACKUP_MANIFEST_PATH, new TextReader(JSON.stringify(manifest)));
+  return new File([await writer.close()], 'compatibilidad-v1.nutriasta');
+}
+
 describe('backup completo y restauración temporal', () => {
   it('cifra, verifica, activa, revierte, reactiva y confirma sin borrar el anterior', async () => {
     const { datasetId, service } = await fixture(); const exported = await service.create('clave-ficticia-segura');
@@ -78,7 +121,36 @@ describe('backup completo y restauración temporal', () => {
     expect((await database!.metadata.get('activeMainDatasetId'))?.value).toBe(datasetId);
     const prepared = await service.prepare(file, 'clave-ficticia-segura'); await service.cancel(prepared);
     expect((await database!.metadata.get('activeMainDatasetId'))?.value).toBe(datasetId);
-    expect(await database!.profiles.where('datasetId').equals(prepared.candidateDatasetId).count()).toBe(0);
+    expect(await countsFor(prepared.candidateDatasetId))
+      .toEqual(Object.fromEntries(FULL_DATA_TABLES_V3.map((table) => [table, 0])));
+    expect(await countsFor(datasetId))
+      .toEqual(Object.fromEntries(FULL_DATA_TABLES_V3.map((table) => [table, 1])));
+  });
+  it('limpia las 26 tablas después de una preparación interrumpida y conserva el activo', async () => {
+    const { datasetId, service } = await fixture();
+    const exported = await service.create('clave-ficticia-segura');
+    const prepared = await service.prepare(new File([exported.blob], exported.filename), 'clave-ficticia-segura');
+    expect(Object.values(await countsFor(prepared.candidateDatasetId)).every((count) => count === 1)).toBe(true);
+    await database!.migrationRuns.update(prepared.runId, { state: 'staging' });
+
+    await service.status();
+
+    expect((await database!.metadata.get('activeMainDatasetId'))?.value).toBe(datasetId);
+    expect(await countsFor(prepared.candidateDatasetId))
+      .toEqual(Object.fromEntries(FULL_DATA_TABLES_V3.map((table) => [table, 0])));
+    expect(Object.values(await countsFor(datasetId)).every((count) => count === 1)).toBe(true);
+  });
+  it('persiste el dataset activo de preparación y solo confirma si el candidato sigue activo', async () => {
+    const { datasetId, service } = await fixture();
+    const exported = await service.create('clave-ficticia-segura');
+    const prepared = await service.prepare(new File([exported.blob], exported.filename), 'clave-ficticia-segura');
+    const run = await database!.migrationRuns.get(prepared.runId);
+    expect(run?.preparedActiveSource).toBe('main');
+    expect(run?.preparedActiveMainDatasetId).toBe(datasetId);
+    expect((await service.status()).prepared?.previousDatasetId).toBe(datasetId);
+    const session = await service.activate(prepared);
+    await database!.metadata.put({ key: 'activeMainDatasetId', value: datasetId });
+    await expect(service.confirm(session)).rejects.toThrow(/ya no es el dataset activo/);
   });
   it('importa un backup completo de formato 2 como candidato sin modificar el activo', async () => {
     const { datasetId, service } = await fixture();
@@ -102,7 +174,26 @@ describe('backup completo y restauración temporal', () => {
     expect(prepared.manifest.formatVersion).toBe(2);
     expect((await database!.metadata.get('activeMainDatasetId'))?.value).toBe(datasetId);
     expect((await database!.datasets.get(prepared.candidateDatasetId))?.source).toBe('format-2-backup');
+    for (const table of FULL_DATA_TABLES_V3.slice(FULL_DATA_TABLES.length)) {
+      expect(await database!.table(table).where('datasetId').equals(prepared.candidateDatasetId).count()).toBe(0);
+    }
     await service.cancel(prepared);
+  });
+  it('reutiliza el decodificador histórico e importa formato 1 con las doce tablas MVP 2 vacías', async () => {
+    const { datasetId, service } = await fixture();
+    const prepared = await service.prepare(await format1File(), 'clave-ficticia-segura');
+    expect(prepared.manifest.formatVersion).toBe(1);
+    expect((await database!.metadata.get('activeMainDatasetId'))?.value).toBe(datasetId);
+    expect((await database!.datasets.get(prepared.candidateDatasetId))?.source).toBe('format-1-backup');
+    expect(await database!.legacyViabilityRecords.where('datasetId').equals(prepared.candidateDatasetId).count()).toBe(1);
+    for (const table of FULL_DATA_TABLES_V3.slice(FULL_DATA_TABLES.length)) {
+      expect(await database!.table(table).where('datasetId').equals(prepared.candidateDatasetId).count()).toBe(0);
+    }
+    const session = await service.activate(prepared);
+    const rolledBack = await service.rollback(session);
+    const reactivated = await service.reactivate(rolledBack);
+    await service.confirm(reactivated);
+    expect((await database!.metadata.get('activeMainDatasetId'))?.value).toBe(prepared.candidateDatasetId);
   });
   it('bloquea la exportación si el saldo de inventario no reconcilia con sus movimientos', async () => {
     const { service } = await fixture();

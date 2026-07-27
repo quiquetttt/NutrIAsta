@@ -6,6 +6,7 @@ import {
   parseFullBackupData, parseFullBackupManifest,
 } from '@/backup/full-backup-format';
 import { identifyBackupFormat } from '@/backup/full-backup-dispatcher';
+import { decodeFormat1Backup } from '@/backup/decode-format-1.web';
 import {
   FULL_BACKUP_V3_DATA_PATH,
   FULL_BACKUP_V3_LIMITS,
@@ -20,7 +21,15 @@ import {
   type FullBackupDataV3,
   type FullBackupManifestV3,
 } from '@/backup/full-backup-v3-types';
-import { FULL_DATA_TABLES, type FullBackupData, type FullBackupFileDescriptor, type FullBackupManifest, type FullBackupStatus, type PreparedFullRestore } from '@/backup/full-backup-types';
+import {
+  FULL_DATA_TABLES,
+  type FullBackupData,
+  type FullBackupFileDescriptor,
+  type FullBackupManifest,
+  type FullBackupStatus,
+  type LegacyBackupManifestForRestore,
+  type PreparedFullRestore,
+} from '@/backup/full-backup-types';
 import { mainDatabase, type NutrIAstaMainDatabase } from '@/storage/main-database.web';
 import { mainDatasetRepository, type MainDatasetRepository } from '@/storage/main-dataset-repository.web';
 import type { MainDatasetMetadata, MainMigrationSession, MigrationRun } from '@/storage/main-dataset-types';
@@ -33,7 +42,7 @@ type EstimateProvider = () => Promise<StorageEstimate>;
 const defaultEstimate = () => navigator.storage?.estimate ? navigator.storage.estimate() : Promise.resolve({});
 type MediaValue = { table: 'legacyViabilityPhotos' | 'foodPhotos'; id: string; blob: Blob; thumbnail: Blob };
 
-type AnyManifest = FullBackupManifest | FullBackupManifestV3;
+type AnyManifest = LegacyBackupManifestForRestore | FullBackupManifest | FullBackupManifestV3;
 type AnyData = FullBackupData | FullBackupDataV3;
 interface BuiltSnapshot { data: AnyData; dataJson: string; media: MediaValue[]; files: FullBackupFileDescriptor[]; counts: Record<string, number>; payloadBytes: number; fingerprint: string; }
 interface DecodedFullBackup { manifest: AnyManifest; data: AnyData; media: MediaValue[]; payloadBytes: number; tables: readonly string[]; }
@@ -78,6 +87,68 @@ function boundedOptions(password: string, maximum: number) { const check = (valu
 async function readText(entry: FileEntry, password: string, maximum: number) { const value = await entry.getData(new TextWriter(), boundedOptions(password, maximum)); if (textByteLength(value) > maximum) throw new Error('El texto descomprimido supera el límite.'); return value; }
 async function readBlob(entry: FileEntry, password: string, maximum: number) { const value = await entry.getData(new BlobWriter('image/jpeg'), boundedOptions(password, maximum)); if (value.size > maximum) throw new Error('La fotografía descomprimida supera el límite.'); return value; }
 
+async function decodeLegacyFormat1(file: File, password: string): Promise<DecodedFullBackup> {
+  const decoded = await decodeFormat1Backup(file, password);
+  const data = emptyData(FULL_DATA_TABLES_V3) as FullBackupDataV3;
+  data.legacyViabilityRecords = decoded.snapshot.records.map(({ datasetId: _datasetId, ...row }) => row);
+  const media: MediaValue[] = [];
+  data.legacyViabilityPhotos = decoded.snapshot.photos.map((source) => {
+    const { datasetId: _datasetId, blob, thumbnail, ...row } = source;
+    media.push({ table: 'legacyViabilityPhotos', id: row.id, blob, thumbnail });
+    return row;
+  });
+  sortRows(data.legacyViabilityRecords);
+  sortRows(data.legacyViabilityPhotos);
+  const dataJson = JSON.stringify(data);
+  const dataChecksum = await sha256Text(dataJson);
+  const files: FullBackupFileDescriptor[] = [{
+    path: FULL_BACKUP_V3_DATA_PATH,
+    kind: 'data',
+    size: textByteLength(dataJson),
+    checksum: dataChecksum,
+    mimeType: 'application/json',
+  }];
+  for (const item of media) {
+    const source = decoded.snapshot.photos.find(({ id }) => id === item.id);
+    if (!source) throw new Error('La fotografía histórica no puede normalizarse.');
+    files.push(
+      {
+        path: mediaPath(item.table, item.id),
+        kind: 'photo',
+        table: item.table,
+        id: item.id,
+        size: item.blob.size,
+        checksum: source.checksum,
+        mimeType: 'image/jpeg',
+      },
+      {
+        path: mediaPath(item.table, item.id, true),
+        kind: 'thumbnail',
+        table: item.table,
+        id: item.id,
+        size: item.thumbnail.size,
+        checksum: source.thumbnailChecksum,
+        mimeType: 'image/jpeg',
+      },
+    );
+  }
+  const entityCounts = Object.fromEntries(
+    FULL_DATA_TABLES_V3.map((table) => [table, data[table].length]),
+  ) as FullBackupManifestV3['entityCounts'];
+  const manifest: LegacyBackupManifestForRestore = {
+    ...decoded.manifest,
+    entityCounts,
+    contentFingerprint: await manifestFingerprint(dataChecksum, files),
+  };
+  return {
+    manifest,
+    data,
+    media,
+    payloadBytes: files.reduce((total, descriptor) => total + descriptor.size, 0),
+    tables: FULL_DATA_TABLES_V3,
+  };
+}
+
 export async function decodeFullBackup(file: File, password: string): Promise<DecodedFullBackup> {
   assertFullBackupPassword(password);
   if (!/\.(nutriasta|zip)$/i.test(file.name) || file.size < 1 || file.size > FULL_BACKUP_V3_LIMITS.archiveBytes) throw new Error('Selecciona un backup completo válido dentro del límite de tamaño.');
@@ -92,10 +163,10 @@ export async function decodeFullBackup(file: File, password: string): Promise<De
     }
     const manifestText = await readText(requiredEntry(entries, FULL_BACKUP_V3_MANIFEST_PATH), password, FULL_BACKUP_V3_LIMITS.manifestBytes);
     const format = identifyBackupFormat(manifestText);
-    if (format === 1) throw new Error('Usa la importación de compatibilidad para el backup de formato 1.');
+    if (format === 1) return decodeLegacyFormat1(file, password);
     const isV3 = format === 3;
     const manifest: AnyManifest = isV3
-      ? parseFullBackupV3Manifest(manifestText, FULL_BACKUP_V3_MINIMUM_APP_VERSION)
+      ? parseFullBackupV3Manifest(manifestText, APP_VERSION)
       : parseFullBackupManifest(manifestText);
     const limits = isV3 ? FULL_BACKUP_V3_LIMITS : FULL_BACKUP_LIMITS;
     const tables: readonly string[] = isV3 ? FULL_DATA_TABLES_V3 : FULL_DATA_TABLES;
@@ -128,17 +199,28 @@ export class FullBackupService {
 
   private async activeId() { await this.db.open(); const source = (await this.db.metadata.get(MAIN_META_KEYS.activeSource))?.value; const id = (await this.db.metadata.get(MAIN_META_KEYS.activeMainDatasetId))?.value; if (source !== 'main' || typeof id !== 'string') throw new Error('No existe un dataset principal activo.'); return id; }
   async status(): Promise<FullBackupStatus> {
-    await this.repository.initialize(); const candidates = (await this.db.datasets.where('state').equals('staging').toArray()).filter((item) => item.source === 'format-2-backup' || item.source === 'format-3-backup').sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    await this.repository.initialize(); const candidates = (await this.db.datasets.where('state').equals('staging').toArray()).filter((item) => item.source === 'format-1-backup' || item.source === 'format-2-backup' || item.source === 'format-3-backup').sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     const candidate = candidates[0]; const run = candidate ? await this.db.migrationRuns.where('candidateDatasetId').equals(candidate.id).first() : undefined;
     const manifest = candidate && run?.state === 'prepared' ? this.manifestFromDataset(candidate) : null;
     const rawSession = await this.repository.getMigrationSession();
     const sessionRun = rawSession ? await this.db.migrationRuns.get(rawSession.runId) : undefined;
-    const fullSession = sessionRun?.sourceKind === 'format-2-backup' || sessionRun?.sourceKind === 'format-3-backup';
-    return { lastBackupAt: ((await this.db.metadata.get(MAIN_META_KEYS.lastFullBackupAt))?.value as string | undefined) ?? null, prepared: candidate && run && manifest ? { candidateDatasetId: candidate.id, runId: run.id, previousDatasetId: await this.activeId(), manifest, payloadBytes: candidate.payloadBytes } : null, session: fullSession ? rawSession : null, blockedByOtherMigration: Boolean(rawSession && !fullSession) };
+    const fullSession = sessionRun?.sourceKind === 'format-1-backup' || sessionRun?.sourceKind === 'format-2-backup' || sessionRun?.sourceKind === 'format-3-backup';
+    return { lastBackupAt: ((await this.db.metadata.get(MAIN_META_KEYS.lastFullBackupAt))?.value as string | undefined) ?? null, prepared: candidate && run && manifest ? { candidateDatasetId: candidate.id, runId: run.id, previousDatasetId: run.preparedActiveMainDatasetId ?? await this.activeId(), manifest, payloadBytes: candidate.payloadBytes } : null, session: fullSession ? rawSession : null, blockedByOtherMigration: Boolean(rawSession && !fullSession) };
   }
   private manifestFromDataset(dataset: MainDatasetMetadata): AnyManifest | null {
     if (!dataset.sourceBackupId || !dataset.sourceExportedAt || !dataset.entityCounts) return null;
     const common = { format: 'nutriasta-full-backup' as const, appVersion: APP_VERSION, backupId: dataset.sourceBackupId, sourceDatasetId: dataset.sourceDatasetId, exportedAt: dataset.sourceExportedAt, files: [], contentFingerprint: dataset.contentFingerprint };
+    if (dataset.source === 'format-1-backup') {
+      return {
+        ...common,
+        format: 'nutriasta-backup',
+        formatVersion: 1,
+        minimumAppVersion: '0.1.0',
+        recordCount: dataset.recordCount,
+        photoCount: dataset.photoCount,
+        entityCounts: dataset.entityCounts as FullBackupManifestV3['entityCounts'],
+      };
+    }
     return dataset.source === 'format-3-backup'
       ? { ...common, formatVersion: 3, databaseSchemaVersion: 6, minimumAppVersion: FULL_BACKUP_V3_MINIMUM_APP_VERSION, entityCounts: dataset.entityCounts as FullBackupManifestV3['entityCounts'] }
       : { ...common, formatVersion: 2, minimumAppVersion: FULL_BACKUP_MINIMUM_APP_VERSION, entityCounts: dataset.entityCounts as FullBackupManifest['entityCounts'] };
@@ -162,14 +244,20 @@ export class FullBackupService {
   async prepare(file: File, password: string): Promise<PreparedFullRestore> {
     return trackUpdateBlockingOperation(async () => {
       if (await this.repository.getMigrationSession()) throw new Error('Hay una activación pendiente de confirmar o revertir.');
-      const decoded = await decodeFullBackup(file, password); const previousDatasetId = await this.activeId(); const estimate = await this.estimate();
+      const decoded = await decodeFullBackup(file, password);
+      const previousDatasetId = await this.activeId();
+      const previousSource = await this.repository.getActiveSource();
+      const estimate = await this.estimate();
       if (typeof estimate.usage !== 'number' || typeof estimate.quota !== 'number') throw new Error('Safari no informa del espacio disponible; la restauración segura no puede prepararse.');
       const required = Math.ceil(decoded.payloadBytes * 1.5) + 10 * 1024 * 1024; if (estimate.quota - estimate.usage < required) throw new Error('No hay espacio suficiente para mantener el dataset actual y el candidato.');
       const id = createId('main-dataset'); const runId = createId('restore-full'); const now = new Date().toISOString();
-      const isV3 = decoded.manifest.formatVersion === 3;
-      const sourceKind = isV3 ? 'format-3-backup' : 'format-2-backup';
+      const sourceKind = decoded.manifest.formatVersion === 3
+        ? 'format-3-backup'
+        : decoded.manifest.formatVersion === 2
+          ? 'format-2-backup'
+          : 'format-1-backup';
       const dataset: MainDatasetMetadata = { id, state: 'staging', source: sourceKind, createdAt: now, updatedAt: now, recordCount: decoded.manifest.entityCounts.legacyViabilityRecords, photoCount: decoded.manifest.entityCounts.legacyViabilityPhotos + decoded.manifest.entityCounts.foodPhotos, payloadBytes: decoded.payloadBytes, sourceFingerprint: decoded.manifest.contentFingerprint, contentFingerprint: decoded.manifest.contentFingerprint, sourceDatasetId: decoded.manifest.sourceDatasetId, sourceBackupId: decoded.manifest.backupId, sourceExportedAt: decoded.manifest.exportedAt, entityCounts: decoded.manifest.entityCounts };
-      const run: MigrationRun = { id: runId, state: 'staging', sourceKind, sourceFingerprint: decoded.manifest.contentFingerprint, contentFingerprint: decoded.manifest.contentFingerprint, sourceDatasetId: decoded.manifest.sourceDatasetId, candidateDatasetId: id, createdAt: now, updatedAt: now };
+      const run: MigrationRun = { id: runId, state: 'staging', sourceKind, sourceFingerprint: decoded.manifest.contentFingerprint, contentFingerprint: decoded.manifest.contentFingerprint, sourceDatasetId: decoded.manifest.sourceDatasetId, candidateDatasetId: id, preparedActiveSource: previousSource, preparedActiveMainDatasetId: previousDatasetId, createdAt: now, updatedAt: now };
       await trackWrite(() => this.db.transaction('rw', this.db.datasets, this.db.migrationRuns, async () => { await this.db.datasets.add(dataset); await this.db.migrationRuns.add(run); }));
       try {
         for (const tableName of decoded.tables) {
@@ -184,7 +272,7 @@ export class FullBackupService {
     });
   }
   async cancel(prepared: PreparedFullRestore) { await trackUpdateBlockingOperation(() => this.repository.cancelCandidate(prepared.candidateDatasetId)); }
-  async activate(prepared: PreparedFullRestore) { return trackUpdateBlockingOperation(async () => { if (await this.activeId() !== prepared.previousDatasetId) throw new Error('El dataset activo cambió desde la preparación.'); const tables = prepared.manifest.formatVersion === 3 ? FULL_DATA_TABLES_V3 : FULL_DATA_TABLES; const built = await buildSnapshot(this.db, prepared.candidateDatasetId, tables); if (built.fingerprint !== prepared.manifest.contentFingerprint) throw new Error('El candidato ya no coincide con el backup.'); return this.repository.activateCandidate(prepared.candidateDatasetId); }); }
+  async activate(prepared: PreparedFullRestore) { return trackUpdateBlockingOperation(async () => { if (await this.activeId() !== prepared.previousDatasetId) throw new Error('El dataset activo cambió desde la preparación.'); const tables = prepared.manifest.formatVersion === 2 ? FULL_DATA_TABLES : FULL_DATA_TABLES_V3; const built = await buildSnapshot(this.db, prepared.candidateDatasetId, tables); if (built.fingerprint !== prepared.manifest.contentFingerprint) throw new Error('El candidato ya no coincide con el backup.'); return this.repository.activateCandidate(prepared.candidateDatasetId); }); }
   async rollback(session: MainMigrationSession) { return trackUpdateBlockingOperation(() => this.repository.rollback(session)); }
   async reactivate(session: MainMigrationSession) { return trackUpdateBlockingOperation(() => this.repository.reactivate(session)); }
   async confirm(session: MainMigrationSession) { await trackUpdateBlockingOperation(() => this.repository.confirm(session)); }
