@@ -84,6 +84,8 @@ export interface ShoppingList {
   sourceOperationId?: string;
   completedAt?: string;
   reopenedFromListId?: string;
+  undoneAt?: string;
+  undoOperationId?: string;
   createdAt: string;
   updatedAt: string;
 }

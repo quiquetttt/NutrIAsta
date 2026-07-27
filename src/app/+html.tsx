@@ -123,6 +123,29 @@ const rootStyles = `
   .na-history-row small { overflow: hidden; color: var(--na-muted); text-overflow: ellipsis; white-space: nowrap; }
   .na-weight-chart { display: block; width: 100%; max-height: 260px; color: var(--na-ink); background: linear-gradient(#f9fbfa, #fff); border: 1px solid var(--na-border); border-radius: 16px; }
   .na-weight-empty { padding: 24px; color: var(--na-muted); text-align: center; background: #f9fbfa; border: 1px dashed var(--na-border); border-radius: 16px; }
+  .na-dialog {
+    width: min(calc(100% - 24px), 520px); max-height: calc(100dvh - 24px);
+    margin: auto auto 0; padding: 12px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+    color: var(--na-ink); background: #fff; border: 0; border-radius: 24px 24px 0 0;
+    box-shadow: 0 -22px 60px rgb(7 26 47 / 28%); overflow: auto;
+  }
+  .na-dialog[open] { display: grid; gap: 14px; }
+  .na-dialog::backdrop { background: rgb(7 26 47 / 62%); backdrop-filter: blur(3px); }
+  .na-dialog-handle { width: 42px; height: 4px; justify-self: center; background: #cbd4cf; border-radius: 99px; }
+  .na-dialog-close {
+    position: absolute; top: 14px; right: 16px; display: grid; width: 42px; height: 42px;
+    place-items: center; color: var(--na-navy-soft); font-size: 1.4rem; background: #eef3f0;
+    border: 0; border-radius: 50%;
+  }
+  .na-review-values { display: grid; margin: 0; overflow: hidden; border: 1px solid var(--na-border); border-radius: 13px; }
+  .na-review-values div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 10px; border-top: 1px solid var(--na-border); }
+  .na-review-values div:first-child { border-top: 0; }
+  .na-review-values dt { color: var(--na-muted); }
+  .na-review-values dd { margin: 0; font-weight: 850; text-align: right; font-variant-numeric: tabular-nums; }
+  .na-review-options { display: grid; gap: 8px; margin: 0; padding: 11px; border: 1px solid var(--na-border); border-radius: 13px; }
+  .na-review-options legend { padding: 0 5px; font-weight: 850; }
+  .na-review-options label, .na-review-shopping { display: flex; min-height: 44px; align-items: center; gap: 9px; font-weight: 750; }
+  .na-review-options input, .na-review-shopping input { width: 22px; height: 22px; flex: 0 0 auto; accent-color: var(--na-green-dark); }
   @keyframes na-spin { to { transform: rotate(360deg); } }
   @media (min-width: 900px) {
     .na-shell { display: grid; grid-template-columns: 246px minmax(0, 1fr); min-height: 100dvh; }
@@ -140,6 +163,7 @@ const rootStyles = `
     .na-header { padding-top: 24px; padding-right: 32px; padding-left: 32px; }
     .na-content { max-width: 980px; padding: 24px 32px 64px; }
     .na-bottom-nav { display: none; }
+    .na-dialog { margin: auto; border-radius: 24px; }
   }
   @media (max-width: 340px) {
     .na-content { padding-right: 12px; padding-left: 12px; }

@@ -31,8 +31,9 @@ test('crea una receta, la planifica y conserva su snapshot al consumirla', async
   await expect(page.getByText('Receta añadida con snapshot nutricional.')).toBeVisible();
   await expect(page.getByText('Planificado', { exact: true }).last()).toBeVisible();
   await expect(page.getByText(/Planificado aparte: 150.0 kcal/)).toBeVisible();
-  chooseNoInventoryDeduction(page);
   await page.getByRole('button', { name: 'Marcar Desayuno como consumida' }).click();
+  await page.getByLabel('No descontar inventario').check();
+  await page.getByRole('button', { name: 'Confirmar consumo' }).click();
   await expect(page.getByText('Consumido', { exact: true }).last()).toBeVisible();
   await expect(page.getByText(/150.0 \/ 0.0 kcal/)).toBeVisible();
   await page.reload();
@@ -40,13 +41,3 @@ test('crea una receta, la planifica y conserva su snapshot al consumirla', async
   await expect(page.getByText('Receta ficticia', { exact: true }).last()).toBeVisible();
   await expect(page.getByText('Consumido', { exact: true }).last()).toBeVisible();
 });
-
-function chooseNoInventoryDeduction(page: import('@playwright/test').Page) {
-  const answers = [false, true, false];
-  const listener = (dialog: import('@playwright/test').Dialog) => {
-    const answer = answers.shift();
-    void (answer ? dialog.accept() : dialog.dismiss());
-    if (answers.length === 0) page.off('dialog', listener);
-  };
-  page.on('dialog', listener);
-}
