@@ -49,16 +49,18 @@ npx expo-doctor
 
 `npm run test:e2e` elimina y reconstruye `dist`, elige un puerto libre y arranca un servidor exclusivo con `reuseExistingServer: false`. No reutiliza el puerto 4173 ni servidores anteriores.
 
-Resultados finales locales del 26 de julio de 2026:
+Resultados finales locales del 27 de julio de 2026, reproducidos en dos rondas completas con Node 24.14.0:
 
 - TypeScript: correcto.
-- Vitest: 25 archivos y 68 pruebas correctas.
+- Vitest: 26 archivos y 78 pruebas correctas; el backup formato 3 se prueba con las 26 tablas pobladas.
 - Exportación estática, manifiesto, iconos y service worker: correctos.
-- Playwright: 26 pruebas correctas en Chromium; 22 correctas y 4 omisiones justificadas en WebKit para Windows. Incluye navegación adaptable, entrenamiento, peso, inventario y las acciones de agua y recetas.
-- Expo Doctor: 18/18 comprobaciones correctas.
+- Playwright: 30 pruebas correctas en Chromium; 25 correctas y 5 omisiones justificadas en WebKit para Windows. Incluye regresión visual, navegación adaptable, entrenamiento, peso, inventario, backup y una actualización real entre dos builds distintos (`mvp-1-approved-0.2.1` → `0.3.0`) bajo el mismo origen.
+- Expo Doctor: 20/20 comprobaciones correctas.
 - Privacidad: ninguna petición de producción a terceros y ninguna API remota.
 
-Las cuatro omisiones son la reapertura offline bajo service worker y tres recorridos que necesitan serializar fotografías `Blob` en IndexedDB: copia de la foto 0.1.1, edición de fotografía de alimento y backup completo. Playwright WebKit en Windows no reproduce esas capacidades de Safari de iPhone de forma fiable. Los mismos recorridos pasan en Chromium y quedan como pruebas físicas obligatorias en Safari/iPhone.
+Las cinco omisiones son dos reaperturas offline bajo service worker —la apertura general y la comprobación posterior a la actualización real— y tres recorridos que necesitan serializar fotografías `Blob` en IndexedDB: copia de la foto 0.1.1, edición de fotografía de alimento y backup completo. Playwright WebKit en Windows no reproduce esas capacidades de Safari de iPhone de forma fiable. Los mismos recorridos pasan en Chromium y quedan como pruebas físicas obligatorias en Safari/iPhone.
+
+Playwright comprueba estructura accesible, teclado, foco visible, contraste, texto al 200 % y movimiento reducido, pero no sustituye VoiceOver ni Safari real. Lectura y orden con VoiceOver, anuncios de diálogos, captura/selección de fotografías, apertura offline y actualización desde la PWA instalada siguen pendientes de validación física en el iPhone.
 
 ## Backup formato 3 y restauración segura
 
