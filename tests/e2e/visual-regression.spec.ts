@@ -61,6 +61,7 @@ test('mantiene los estados visuales aprobados en móvil y escritorio', async ({ 
   expect(path).toBeTruthy();
   const uploadPath = `${path}.nutriasta.zip`;
   await download.saveAs(uploadPath);
+  await expect(page.getByRole('button', { name: 'Seleccionar backup completo para restaurar' })).toBeEnabled();
   await page.getByLabel('Archivo de backup completo').setInputFiles(uploadPath);
   await expect(page.getByText('Candidato temporal verificado', { exact: false })).toBeVisible();
   await page.getByText('Paso 2 de 3 · Candidato temporal verificado').scrollIntoViewIfNeeded();
