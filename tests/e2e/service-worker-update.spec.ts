@@ -8,7 +8,7 @@ import { MAIN_DATABASE_VERSION } from '../../src/storage/main-schema';
 import { readLegacyState, seedLegacyDatabase } from './legacy-fixture';
 import { openMvpSection } from './mvp-fixture';
 
-test.describe.serial('actualización real 0.2.1 → 0.3.2 bajo el mismo origen', () => {
+test.describe.serial('actualización real 0.2.1 → 0.3.3 bajo el mismo origen', () => {
   let context: BrowserContext;
   let page: Page;
   let server: ChildProcess;
@@ -77,7 +77,7 @@ test.describe.serial('actualización real 0.2.1 → 0.3.2 bajo el mismo origen',
     await expect(page.getByText(/Versión 0\.2\.1/).first()).toBeVisible();
 
     await page.evaluate(() => (window as unknown as { __releasePhotoProcessing: () => void }).__releasePhotoProcessing());
-    await expect(page.getByRole('banner').getByText(/Versión 0\.3\.2/)).toBeVisible();
+    await expect(page.getByRole('banner').getByText(/Versión 0\.3\.3/)).toBeVisible();
     await openMvpSection(page, 'Perfil y objetivos');
     await expect(page.getByLabel('Alias')).toHaveValue('Perfil actualización ficticio');
     expect(await mainState(page)).toMatchObject({ version: MAIN_DATABASE_VERSION * 10, alias: 'Perfil actualización ficticio' });
@@ -100,7 +100,7 @@ test.describe.serial('actualización real 0.2.1 → 0.3.2 bajo el mismo origen',
     const offlinePage = await context.newPage();
     try {
       await offlinePage.goto('/', { waitUntil: 'domcontentloaded' });
-      await expect(offlinePage.getByRole('banner').getByText(/Versión 0\.3\.2/)).toBeVisible();
+      await expect(offlinePage.getByRole('banner').getByText(/Versión 0\.3\.3/)).toBeVisible();
       await expect(offlinePage.getByText('Offline', { exact: true }).first()).toBeVisible();
       expect(await mainState(offlinePage)).toMatchObject({
         version: MAIN_DATABASE_VERSION * 10,

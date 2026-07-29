@@ -15,6 +15,7 @@ export interface Profile {
   otherSportsDescription: string;
   pal: PalValue;
   waterQuickAmountsMl?: number[];
+  dailyStepsGoal?: number;
   privacyConsentAt: string;
   createdAt: string;
   updatedAt: string;

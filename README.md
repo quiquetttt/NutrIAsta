@@ -1,8 +1,8 @@
-# NutrIAsta — MVP 2 local (versión 0.3.2)
+# NutrIAsta — MVP 2 local (versión 0.3.3)
 
 NutrIAsta es una PWA personal en español para registrar nutrición, entrenamiento, peso, inventario doméstico y compra. Funciona con IndexedDB mediante Dexie y no tiene cuentas, backend, analítica, telemetría ni sincronización.
 
-> Utiliza exclusivamente datos y fotografías ficticios hasta que el parche 0.3.2 supere su comprobación física en el iPhone. Después, antes de empezar el uso real, conserva un backup completo reciente. La persistencia de Safari no está garantizada.
+> Utiliza exclusivamente datos y fotografías ficticios hasta que el parche 0.3.3 supere su comprobación física en el iPhone. Después, antes de empezar el uso real, conserva un backup completo reciente. La persistencia de Safari no está garantizada.
 
 ## Alcance garantizado
 
@@ -11,6 +11,7 @@ NutrIAsta es una PWA personal en español para registrar nutrición, entrenamien
 - Objetivos manuales versionados de calorías, proteínas, carbohidratos, grasas y agua.
 - Catálogo manual de alimentos con varias porciones editables, energía declarada o calculada 4/4/9, favoritos, recientes, supermercado, fotografía local sustituible y prueba técnica EAN sin red.
 - Diario por fecha con comidas de varios elementos, desayuno, comida, cena y tentempié; unidades base seguras, snapshots nutricionales, notas, agua y entrenamiento mínimo sí/no.
+- Objetivo manual diario de pasos, configurable desde Ajustes con 10.000 como valor inicial, y registro editable del total de cada día desde Hoy. No utiliza sensores.
 - Recetas manuales, planificación futura, copia de comidas/días y conversión de planificado a consumido sin recalcular el histórico.
 - Calendario mensual, objetivos semanales efectivos desde un lunes, sesiones simples con tipos y notas, copia e historial desplegable. La interfaz no incluye ejercicios, series, cargas ni ejercicios reutilizables.
 - Historial y gráfica neutral de peso, sin fotografías corporales, análisis ni diagnóstico.
@@ -49,12 +50,12 @@ npx expo-doctor
 
 `npm run test:e2e` elimina y reconstruye `dist`, elige un puerto libre y arranca un servidor exclusivo con `reuseExistingServer: false`. No reutiliza el puerto 4173 ni servidores anteriores.
 
-Resultados locales del parche 0.3.2, ejecutados con Node 24.14.0:
+Resultados locales del parche 0.3.3, ejecutados con Node 24.14.0:
 
 - TypeScript: correcto.
 - Vitest: 26 archivos y 79 pruebas correctas; el backup formato 3 se prueba con las 26 tablas pobladas.
 - Exportación estática, manifiesto, iconos y service worker: correctos.
-- Playwright: 63 pruebas correctas y 5 omisiones justificadas en WebKit para Windows. Incluye regresión visual, navegación adaptable, entrenamiento simplificado, agua desde Hoy, objetivos persistentes, peso, inventario, backup y una actualización real entre dos builds distintos (`mvp-1-approved-0.2.1` → `0.3.2`) bajo el mismo origen.
+- Playwright: 65 pruebas correctas y 5 omisiones justificadas en WebKit para Windows. Incluye regresión visual, navegación adaptable, entrenamiento simplificado, agua y pasos desde Hoy, objetivos persistentes, peso, inventario, backup y una actualización real entre dos builds distintos (`mvp-1-approved-0.2.1` → `0.3.3`) bajo el mismo origen.
 - Expo Doctor: 18/18 comprobaciones correctas.
 - Privacidad: ninguna petición de producción a terceros y ninguna API remota.
 
@@ -97,11 +98,11 @@ No se ha usado `npm audit fix --force`, no se ha rebajado Expo y `expo-doctor` e
 
 ## Pruebas físicas obligatorias en Safari/iPhone
 
-Estas pruebas requieren el despliegue HTTPS autorizado del commit exacto del parche 0.3.2 en el mismo origen privado. No debe publicarse ninguna versión adicional sin otra autorización.
+Estas pruebas requieren el despliegue HTTPS autorizado del commit exacto del parche 0.3.3 en el mismo origen privado. No debe publicarse ninguna versión adicional sin otra autorización.
 
 1. Antes de actualizar, guardar un backup completo de los datos ficticios actuales y conservar también el backup 0.1.1.
 2. Abrir la PWA instalada y comprobar que la versión anterior no se actualiza sola; aceptar la actualización solo desde el aviso.
-3. Confirmar `Versión 0.3.2`, los datos ficticios heredados y los valores de almacenamiento.
+3. Confirmar `Versión 0.3.3`, los datos ficticios heredados y los valores de almacenamiento.
 4. Crear un perfil totalmente ficticio, comprobar que se muestran fórmula, entradas, PAL, fecha y `Estimación`, y guardar dos periodos de objetivos. Verificar que copiar mantenimiento pide confirmación.
 5. Configurar los accesos de agua como 300 y 600 ml, recargar y comprobar que sustituyen a 250 y 500 ml; después restaurar los valores que se prefieran para la prueba.
 6. Crear un alimento ficticio por 100 g con dos porciones. Guardar, recargar, editar otro campo y comprobar que ambas porciones siguen; editar una porción y eliminar la otra con confirmación.

@@ -36,6 +36,7 @@ const EMPTY_PROFILE: ProfileDraft = {
   gymDaysPerWeek: 0, usualStepsPerDay: 0, otherSportsPerWeek: 0,
   otherSportsDescription: '', pal: 1.4, consent: false,
   waterQuickAmountsMl: [250, 500],
+  dailyStepsGoal: 10_000,
 };
 const EMPTY_TARGET: NutritionTargetDraft = {
   effectiveFrom: todayMadrid(), caloriesKcal: 0, proteinG: 0, carbohydratesG: 0, fatG: 0, waterMl: null,
@@ -46,7 +47,7 @@ function draftFromProfile(value: Profile, waterQuickAmountsMl = value.waterQuick
     heightCm: value.heightCm, weightKg: value.weightKg,
     gymDaysPerWeek: value.gymDaysPerWeek, usualStepsPerDay: value.usualStepsPerDay,
     otherSportsPerWeek: value.otherSportsPerWeek, otherSportsDescription: value.otherSportsDescription,
-    pal: value.pal, waterQuickAmountsMl, consent: true,
+    pal: value.pal, waterQuickAmountsMl, dailyStepsGoal: value.dailyStepsGoal ?? 10_000, consent: true,
   };
 }
 
@@ -194,12 +195,22 @@ export function MvpScreen() {
             <View style={{ display: profileView === 'settings' ? 'flex' : 'none', gap: 16 }}>
                 <SettingsPrivacy
                   waterQuickAmounts={profileDraft.waterQuickAmountsMl ?? [250, 500]}
+                  dailyStepsGoal={profileDraft.dailyStepsGoal ?? 10_000}
                   storage={storage}
                   busy={busy}
                   onSaveWater={async (values) => {
                     const persisted = await profileRepository.getProfile();
                     if (!persisted) throw new Error('No existe un perfil activo.');
                     const next = draftFromProfile(persisted, values);
+                    await profileRepository.saveProfile(next);
+                    setProfileDraft(next);
+                    await refresh();
+                  }}
+                  onSaveStepsGoal={async (value) => {
+                    const persisted = await profileRepository.getProfile();
+                    if (!persisted) throw new Error('No existe un perfil activo.');
+                    const next = draftFromProfile(persisted);
+                    next.dailyStepsGoal = value;
                     await profileRepository.saveProfile(next);
                     setProfileDraft(next);
                     await refresh();

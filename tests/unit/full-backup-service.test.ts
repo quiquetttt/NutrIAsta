@@ -22,7 +22,7 @@ async function fixture() {
   await database.legacyViabilityRecords.add({ datasetId, id: 'registro-prueba-001', text: 'Texto ficticio completo', createdAt: now, updatedAt: now });
   const blob = new Blob(['jpeg-ficticio'], { type: 'image/jpeg' }); const thumbnail = new Blob(['miniatura'], { type: 'image/jpeg' });
   await database.legacyViabilityPhotos.add({ datasetId, id: 'foto-prueba-001', blob, thumbnail, mimeType: 'image/jpeg', width: 100, height: 80, size: blob.size, checksum: await sha256Blob(blob), thumbnailChecksum: await sha256Blob(thumbnail), createdAt: now });
-  await database.profiles.add({ datasetId, id: 'profile', alias: 'Perfil ficticio', age: 22, formulaSex: 'male', heightCm: 175, weightKg: 70, gymDaysPerWeek: 4, usualStepsPerDay: 8000, otherSportsPerWeek: 0, otherSportsDescription: '', pal: 1.6, waterQuickAmountsMl: [250, 500], privacyConsentAt: now, createdAt: now, updatedAt: now });
+  await database.profiles.add({ datasetId, id: 'profile', alias: 'Perfil ficticio', age: 22, formulaSex: 'male', heightCm: 175, weightKg: 70, gymDaysPerWeek: 4, usualStepsPerDay: 8000, otherSportsPerWeek: 0, otherSportsDescription: '', pal: 1.6, waterQuickAmountsMl: [250, 500], dailyStepsGoal: 10_000, privacyConsentAt: now, createdAt: now, updatedAt: now });
   await database.nutritionTargetPeriods.add({ datasetId, id: 'objetivo-ficticio', effectiveFrom: '2026-07-01', caloriesKcal: 2200, proteinG: 120, carbohydratesG: 260, fatG: 70, waterMl: 2000, createdAt: now });
   await database.foods.add({ datasetId, id: 'alimento-ficticio', name: 'Alimento ficticio', brand: 'Marca ficticia', supermarket: 'Tienda ficticia', barcode: '8412345678905', baseUnit: 'g', energyKcal: 100, energyKj: 418, proteinG: 10, carbohydratesG: 8, fatG: 3, energySource: 'declared', dataOrigin: 'manual', notes: '', favorite: true, archived: false, createdAt: now, updatedAt: now, lastUsedAt: now });
   await database.foodPortions.add({ datasetId, id: 'porcion-ficticia', foodId: 'alimento-ficticio', name: 'Bol ficticio', amount: 75, baseUnit: 'g' });
@@ -30,7 +30,7 @@ async function fixture() {
   await database.foodPhotos.add({ datasetId, id: 'foto-alimento-ficticia', foodId: 'alimento-ficticio', blob: foodBlob, thumbnail: foodThumbnail, mimeType: 'image/jpeg', width: 200, height: 120, size: foodBlob.size, checksum: await sha256Blob(foodBlob), thumbnailChecksum: await sha256Blob(foodThumbnail), createdAt: now });
   const snapshot = { name: 'Alimento ficticio', energyKcal: 100, proteinG: 10, carbohydratesG: 8, fatG: 3, baseUnit: 'g' as const, sourceUpdatedAt: now };
   const calculated = { energyKcal: 75, proteinG: 7.5, carbohydratesG: 6, fatG: 2.25 };
-  await database.diaryDays.add({ datasetId, date: '2026-07-22', targetSnapshot: { targetPeriodId: 'objetivo-ficticio', caloriesKcal: 2200, proteinG: 120, carbohydratesG: 260, fatG: 70, waterMl: 2000 }, createdAt: now, updatedAt: now });
+  await database.diaryDays.add({ datasetId, date: '2026-07-22', targetSnapshot: { targetPeriodId: 'objetivo-ficticio', caloriesKcal: 2200, proteinG: 120, carbohydratesG: 260, fatG: 70, waterMl: 2000 }, steps: 8_765, createdAt: now, updatedAt: now });
   await database.mealEntries.add({ datasetId, id: 'comida-ficticia', date: '2026-07-22', mealType: 'breakfast', label: 'Desayuno', state: 'consumed', occurredAt: now, createdAt: now, updatedAt: now });
   await database.mealItems.add({ datasetId, id: 'elemento-ficticio', mealEntryId: 'comida-ficticia', sourceType: 'food', sourceId: 'alimento-ficticio', quantity: 1, quantityUnit: 'portion', baseAmount: 75, portionId: 'porcion-ficticia', nutritionSnapshot: snapshot, calculated, note: 'Nota ficticia', createdAt: now, updatedAt: now });
   await database.waterEntries.add({ datasetId, id: 'agua-ficticia', date: '2026-07-22', amountMl: 250, createdAt: now, updatedAt: now });
@@ -111,6 +111,8 @@ describe('backup completo y restauración temporal', () => {
     await service.confirm(reactivated);
     expect(await database!.datasets.get(datasetId)).toBeTruthy();
     expect((await database!.profiles.where('datasetId').equals(prepared.candidateDatasetId).first())?.alias).toBe('Perfil ficticio');
+    expect((await database!.profiles.where('datasetId').equals(prepared.candidateDatasetId).first())?.dailyStepsGoal).toBe(10_000);
+    expect((await database!.diaryDays.where('datasetId').equals(prepared.candidateDatasetId).first())?.steps).toBe(8_765);
     expect((await database!.foodPortions.where('datasetId').equals(prepared.candidateDatasetId).first())?.name).toBe('Bol ficticio');
     const restoredPhoto = await database!.foodPhotos.where('datasetId').equals(prepared.candidateDatasetId).first();
     expect(restoredPhoto?.checksum).toBe(await sha256Blob(restoredPhoto!.blob));

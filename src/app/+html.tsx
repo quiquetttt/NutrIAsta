@@ -125,7 +125,7 @@ const rootStyles = `
   .na-history-row { display: flex; width: 100%; min-width: 0; min-height: 50px; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; color: var(--na-ink); text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--na-border); }
   .na-history-row > span { display: grid; min-width: 0; gap: 2px; }
   .na-history-row small { overflow: hidden; color: var(--na-muted); text-overflow: ellipsis; white-space: nowrap; }
-  .na-today-grid, .na-today-pair { display: grid; min-width: 0; gap: 16px; }
+  .na-today-grid, .na-today-side, .na-today-pair { display: grid; min-width: 0; gap: 16px; }
   .na-today-pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .na-today-wide { min-width: 0; }
   .na-weight-chart { display: block; width: 100%; max-height: 260px; color: var(--na-ink); background: linear-gradient(#f9fbfa, #fff); border: 1px solid var(--na-border); border-radius: 16px; }

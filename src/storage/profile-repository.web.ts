@@ -20,7 +20,11 @@ export class ProfileRepository {
   async getProfile(): Promise<Profile | null> {
     const datasetId = await this.activeDatasetId();
     const profile = await this.db.profiles.get([datasetId, 'profile']);
-    return profile ? { ...profile, waterQuickAmountsMl: profile.waterQuickAmountsMl?.length ? profile.waterQuickAmountsMl : [250, 500] } : null;
+    return profile ? {
+      ...profile,
+      waterQuickAmountsMl: profile.waterQuickAmountsMl?.length ? profile.waterQuickAmountsMl : [250, 500],
+      dailyStepsGoal: profile.dailyStepsGoal ?? 10_000,
+    } : null;
   }
 
   async saveProfile(draft: ProfileDraft): Promise<Profile> {
@@ -31,6 +35,7 @@ export class ProfileRepository {
     const profile: Profile = {
       ...draft,
       waterQuickAmountsMl: draft.waterQuickAmountsMl ?? previous?.waterQuickAmountsMl ?? [250, 500],
+      dailyStepsGoal: draft.dailyStepsGoal ?? previous?.dailyStepsGoal ?? 10_000,
       datasetId,
       id: 'profile',
       privacyConsentAt: previous?.privacyConsentAt ?? now,
@@ -77,6 +82,8 @@ function validateProfile(draft: ProfileDraft) {
   if (!Number.isInteger(draft.otherSportsPerWeek) || draft.otherSportsPerWeek < 0 || draft.otherSportsPerWeek > 14) throw new Error('Las sesiones deportivas deben estar entre 0 y 14.');
   const quickWater = draft.waterQuickAmountsMl ?? [250, 500];
   if (quickWater.length < 1 || quickWater.length > 6 || quickWater.some((value) => !Number.isInteger(value) || value < 50 || value > 5000) || new Set(quickWater).size !== quickWater.length) throw new Error('Los accesos rápidos de agua deben contener entre 1 y 6 valores únicos de 50 a 5000 ml.');
+  const stepsGoal = draft.dailyStepsGoal ?? 10_000;
+  if (!Number.isInteger(stepsGoal) || stepsGoal < 1 || stepsGoal > 200_000) throw new Error('El objetivo diario de pasos debe ser un número entero entre 1 y 200.000.');
 }
 
 function validateTargets(draft: NutritionTargetDraft) {

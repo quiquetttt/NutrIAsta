@@ -5,7 +5,7 @@ export type MealState = 'consumed' | 'planned';
 export type QuantityUnit = 'g' | 'ml' | 'unit' | 'portion';
 export interface NutritionSnapshot { name: string; energyKcal: number; proteinG: number; carbohydratesG: number; fatG: number; baseUnit: FoodBaseUnit; sourceUpdatedAt: string; }
 export interface TargetSnapshot { targetPeriodId: string | null; caloriesKcal: number; proteinG: number; carbohydratesG: number; fatG: number; waterMl: number | null; }
-export interface DiaryDay { datasetId: string; date: string; targetSnapshot: TargetSnapshot; createdAt: string; updatedAt: string; }
+export interface DiaryDay { datasetId: string; date: string; targetSnapshot: TargetSnapshot; steps?: number; createdAt: string; updatedAt: string; }
 export interface MealEntry { datasetId: string; id: string; date: string; mealType: MealType; label: string; state: MealState; occurredAt?: string; createdAt: string; updatedAt: string; }
 export interface MealItem { datasetId: string; id: string; mealEntryId: string; sourceType: 'food' | 'recipe'; sourceId: string; quantity: number; quantityUnit: QuantityUnit; baseAmount: number; portionId?: string; nutritionSnapshot: NutritionSnapshot; calculated: NutritionTotals; note: string; createdAt: string; updatedAt: string; }
 export interface NutritionTotals { energyKcal: number; proteinG: number; carbohydratesG: number; fatG: number; }

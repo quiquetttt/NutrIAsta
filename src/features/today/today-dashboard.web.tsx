@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Text, TextInput, View } from 'react-native';
 
+import { AccessibleDialog } from '@/components/accessible-dialog.web';
 import { ActionButton, Card, SectionTitle, palette } from '@/components/ui';
 import type { DiaryView, NutritionTotals } from '@/mvp/diary-types';
 import type { NutritionTargetPeriod } from '@/mvp/profile-types';
@@ -29,10 +30,13 @@ export function TodayDashboard({
   const [diary, setDiary] = useState<DiaryView | null>(null);
   const [target, setTarget] = useState<NutritionTargetPeriod | null>(null);
   const [waterQuickAmounts, setWaterQuickAmounts] = useState([250, 500]);
+  const [stepsGoal, setStepsGoal] = useState(10_000);
+  const [stepsDraft, setStepsDraft] = useState('0');
+  const [stepsDialogOpen, setStepsDialogOpen] = useState(false);
   const [training, setTraining] = useState<WeeklyTrainingSummary | null>(null);
   const [inventory, setInventory] = useState<InventoryViewItem[]>([]);
   const [shoppingPending, setShoppingPending] = useState(0);
-  const [waterBusy, setWaterBusy] = useState(false);
+  const [operationBusy, setOperationBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -51,6 +55,7 @@ export function TodayDashboard({
         setDiary(day);
         setTarget(activeTarget);
         setWaterQuickAmounts(profile?.waterQuickAmountsMl?.length ? profile.waterQuickAmountsMl : [250, 500]);
+        setStepsGoal(profile?.dailyStepsGoal ?? 10_000);
         setTraining(week);
         setInventory(stock);
         setShoppingPending(list?.items.filter(({ status }) => status === 'pending').length ?? 0);
@@ -63,11 +68,13 @@ export function TodayDashboard({
   const totals = diary?.totals ?? EMPTY_TOTALS;
   const energyPercent = percent(totals.energyKcal, target?.caloriesKcal ?? 0);
   const water = diary?.water.reduce((sum, item) => sum + item.amountMl, 0) ?? 0;
+  const steps = diary?.day.steps ?? 0;
+  const stepsPercent = percent(steps, stepsGoal);
   const depleted = useMemo(() => inventory.filter(({ inventory: item, derivedMilliBase }) => item && derivedMilliBase <= 0), [inventory]);
   const available = useMemo(() => inventory.filter(({ derivedMilliBase }) => derivedMilliBase > 0).length, [inventory]);
 
   async function addWater(amountMl: number) {
-    setWaterBusy(true);
+    setOperationBusy(true);
     setError(null);
     setMessage('');
     try {
@@ -77,7 +84,24 @@ export function TodayDashboard({
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'No se pudo registrar el agua.');
     } finally {
-      setWaterBusy(false);
+      setOperationBusy(false);
+    }
+  }
+
+  async function saveSteps() {
+    const value = Number(stepsDraft);
+    setOperationBusy(true);
+    setError(null);
+    setMessage('');
+    try {
+      await diaryRepository.setSteps(madridToday(), value);
+      setDiary(await diaryRepository.get(madridToday()));
+      setStepsDialogOpen(false);
+      setMessage(`${value.toLocaleString('es-ES')} pasos guardados para hoy.`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'No se pudieron guardar los pasos.');
+    } finally {
+      setOperationBusy(false);
     }
   }
 
@@ -97,30 +121,46 @@ export function TodayDashboard({
         <ActionButton label="Ver diario" tone="secondary" onPress={onOpenDiary} />
       </Card>
 
-      <div className="na-today-pair">
+      <div className="na-today-side">
         <Card>
-          <SectionTitle eyebrow="AGUA">Hoy</SectionTitle>
-          <Text selectable style={{ color: palette.ink, fontSize: 25, fontWeight: '900' }}>{water.toLocaleString('es-ES')} ml</Text>
-          <Text selectable style={{ color: palette.muted }}>{target?.waterMl ? `Objetivo manual: ${target.waterMl.toLocaleString('es-ES')} ml` : 'Sin objetivo manual'}</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {waterQuickAmounts.map((amountMl) => (
-              <ActionButton
-                key={amountMl}
-                disabled={waterBusy}
-                label={`+${amountMl.toLocaleString('es-ES')} ml`}
-                tone="secondary"
-                onPress={() => void addWater(amountMl)}
-              />
-            ))}
-          </View>
-          <ActionButton label="Abrir detalle del agua" tone="secondary" onPress={onOpenDiary} />
+          <SectionTitle eyebrow="PASOS">Hoy</SectionTitle>
+          <Text selectable style={{ color: palette.ink, fontSize: 25, fontWeight: '900' }}>{steps.toLocaleString('es-ES')} / {stepsGoal.toLocaleString('es-ES')}</Text>
+          <Text selectable style={{ color: palette.muted }}>{stepsPercent}% del objetivo manual · registro introducido por ti.</Text>
+          <StepsProgress value={stepsPercent} />
+          <ActionButton
+            label={steps > 0 ? 'Cambiar pasos de hoy' : 'Añadir pasos de hoy'}
+            tone="secondary"
+            onPress={() => {
+              setStepsDraft(String(steps));
+              setStepsDialogOpen(true);
+            }}
+          />
         </Card>
-        <Card>
-          <SectionTitle eyebrow="ENTRENOS">Esta semana</SectionTitle>
-          <Text selectable style={{ color: palette.ink, fontSize: 25, fontWeight: '900' }}>{training?.completed ?? 0} de {training?.goal ?? 4}</Text>
-          <Text selectable style={{ color: palette.muted }}>{training?.fulfillmentText ?? 'Preparando resumen local…'}</Text>
-          <ActionButton label="Ver calendario" tone="secondary" onPress={onOpenTraining} />
-        </Card>
+        <div className="na-today-pair">
+          <Card>
+            <SectionTitle eyebrow="AGUA">Hoy</SectionTitle>
+            <Text selectable style={{ color: palette.ink, fontSize: 25, fontWeight: '900' }}>{water.toLocaleString('es-ES')} ml</Text>
+            <Text selectable style={{ color: palette.muted }}>{target?.waterMl ? `Objetivo manual: ${target.waterMl.toLocaleString('es-ES')} ml` : 'Sin objetivo manual'}</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {waterQuickAmounts.map((amountMl) => (
+                <ActionButton
+                  key={amountMl}
+                  disabled={operationBusy}
+                  label={`+${amountMl.toLocaleString('es-ES')} ml`}
+                  tone="secondary"
+                  onPress={() => void addWater(amountMl)}
+                />
+              ))}
+            </View>
+            <ActionButton label="Abrir detalle del agua" tone="secondary" onPress={onOpenDiary} />
+          </Card>
+          <Card>
+            <SectionTitle eyebrow="ENTRENOS">Esta semana</SectionTitle>
+            <Text selectable style={{ color: palette.ink, fontSize: 25, fontWeight: '900' }}>{training?.completed ?? 0} de {training?.goal ?? 4}</Text>
+            <Text selectable style={{ color: palette.muted }}>{training?.fulfillmentText ?? 'Preparando resumen local…'}</Text>
+            <ActionButton label="Ver calendario" tone="secondary" onPress={onOpenTraining} />
+          </Card>
+        </div>
       </div>
 
       <Card style={depleted.length ? { backgroundColor: palette.warningBackground, borderColor: '#efc979' } : undefined}>
@@ -136,12 +176,38 @@ export function TodayDashboard({
           <ActionButton label="Abrir backup y restauración" tone="secondary" onPress={onOpenSettings} />
         </Card>
       ) : null}
+      <AccessibleDialog
+        busy={operationBusy}
+        confirmDisabled={!validSteps(stepsDraft)}
+        confirmLabel="Guardar pasos de hoy"
+        description="Introduce el total de pasos que has realizado hoy. Puedes cambiarlo después; NutrIAsta no lee sensores ni analiza este dato."
+        onCancel={() => setStepsDialogOpen(false)}
+        onConfirm={() => void saveSteps()}
+        open={stepsDialogOpen}
+        title="Pasos de hoy"
+      >
+        <View style={{ gap: 6 }}>
+          <Text selectable style={{ color: palette.ink, fontWeight: '700' }}>Número de pasos</Text>
+          <TextInput
+            accessibilityLabel="Número de pasos de hoy"
+            autoFocus
+            inputMode="numeric"
+            onChangeText={setStepsDraft}
+            style={inputStyle}
+            value={stepsDraft}
+          />
+          <Text selectable style={{ color: palette.muted, fontSize: 13 }}>Admite entre 0 y 200.000 pasos.</Text>
+        </View>
+      </AccessibleDialog>
     </div>
   );
 }
 
 function Progress({ value }: { value: number }) {
   return <View accessibilityLabel={`${value} por ciento del objetivo de calorías`} style={{ backgroundColor: '#29435c', borderRadius: 999, height: 10, overflow: 'hidden' }}><View style={{ backgroundColor: palette.green, borderRadius: 999, height: '100%', width: `${Math.min(100, value)}%` }} /></View>;
+}
+function StepsProgress({ value }: { value: number }) {
+  return <View accessibilityLabel={`${value} por ciento del objetivo diario de pasos`} style={{ backgroundColor: '#e9eef2', borderRadius: 999, height: 10, overflow: 'hidden' }}><View style={{ backgroundColor: palette.navySoft, borderRadius: 999, height: '100%', width: `${Math.min(100, value)}%` }} /></View>;
 }
 function Macro({ label, value, target }: { label: string; value: number; target: number }) {
   return <Text selectable style={{ backgroundColor: '#17334d', borderRadius: 999, color: '#fff', fontSize: 13, fontWeight: '800', paddingHorizontal: 10, paddingVertical: 7 }}>{label} {Math.round(value)}/{Math.round(target)} g</Text>;
@@ -153,7 +219,9 @@ function SuccessNotice({ text }: { text: string }) {
   return <View accessibilityLiveRegion="polite" style={{ backgroundColor: palette.mint, borderRadius: 16, padding: 14 }}><Text selectable style={{ color: palette.greenDark, fontWeight: '800' }}>{text}</Text></View>;
 }
 function percent(value: number, target: number) { return target > 0 ? Math.max(0, Math.round((value / target) * 100)) : 0; }
+function validSteps(value: string) { const text = value.trim(); const parsed = Number(text); return /^\d+$/.test(text) && Number.isInteger(parsed) && parsed >= 0 && parsed <= 200_000; }
 function backupNeedsAttention(value: string | null) {
   if (!value) return true;
   return Date.now() - new Date(value).getTime() > 7 * 86_400_000;
 }
+const inputStyle = { borderWidth: 1, borderColor: palette.border, borderRadius: 14, padding: 13, color: palette.ink, backgroundColor: '#f9fbfa', fontSize: 16 } as const;

@@ -69,10 +69,10 @@ test('mantiene los estados visuales aprobados en móvil y escritorio', async ({ 
 
   await page.setViewportSize({ width: 320, height: 844 });
   await openMvpSection(page, 'Hoy');
-  await stableScreenshot(page, '06-hoy-320.png');
+  await stableScreenshot(page, '06-hoy-320.png', true);
 
   await page.setViewportSize({ width: 1280, height: 900 });
-  await stableScreenshot(page, '07-escritorio-1280.png');
+  await stableScreenshot(page, '07-escritorio-1280.png', true);
 });
 
 async function addSession(page: Page, date: string, title: string, type: string, completed: boolean) {
@@ -90,8 +90,11 @@ async function addWeight(page: Page, date: string, time: string, value: string) 
   await page.getByRole('button', { name: 'Añadir peso' }).click();
 }
 
-async function stableScreenshot(page: Page, name: string) {
-  await page.locator('.na-surface').evaluate((element) => { element.scrollLeft = 0; });
+async function stableScreenshot(page: Page, name: string, resetScrollTop = false) {
+  await page.locator('.na-surface').evaluate((element, resetTop) => {
+    element.scrollLeft = 0;
+    if (resetTop) element.scrollTop = 0;
+  }, resetScrollTop);
   await expect(page).toHaveScreenshot(name, {
     animations: 'disabled',
     caret: 'hide',

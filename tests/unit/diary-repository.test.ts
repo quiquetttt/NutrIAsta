@@ -45,6 +45,7 @@ describe('diario estructurado con snapshots', () => {
     await foods.save({ ...gramFood, energyKcal: 300, proteinG: 30 }, {}, food.id);
     await profiles.addTargetPeriod({ effectiveFrom: '2026-08-01', caloriesKcal: 3000, proteinG: 150, carbohydratesG: 350, fatG: 80, waterMl: null });
     const water = await diary.addWater('2026-07-15', 250);
+    await diary.setSteps('2026-07-15', 8_765);
     await diary.saveTraining('2026-07-15', true, 'Fuerza ficticia', 'Nota ficticia');
 
     const view = await diary.get('2026-07-15');
@@ -52,6 +53,7 @@ describe('diario estructurado con snapshots', () => {
     expect(view.meals[0]?.items[0]?.nutritionSnapshot.energyKcal).toBe(100);
     expect(view.meals[0]?.items[0]?.calculated.energyKcal).toBe(50);
     expect(view.water[0]?.amountMl).toBe(250);
+    expect(view.day.steps).toBe(8_765);
     expect(view.training?.trained).toBe(true);
 
     await diary.updateItemQuantity(item.id, 100, 100);
@@ -60,6 +62,7 @@ describe('diario estructurado con snapshots', () => {
     expect((await diary.get('2026-07-15')).water[0]?.amountMl).toBe(300);
     await diary.deleteWater(water.id);
     expect((await diary.get('2026-07-15')).water).toHaveLength(0);
+    await expect(diary.setSteps('2026-07-15', 8_765.5)).rejects.toThrow('número entero');
   });
 
   it('rechaza g/ml incompatibles y valida porciones contra la unidad base', async () => {

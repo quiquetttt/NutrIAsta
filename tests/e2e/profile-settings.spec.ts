@@ -53,6 +53,27 @@ test('registra desde Hoy los accesos rápidos de agua configurados y conserva el
   await expect(page.getByText('300 ml', { exact: true })).toBeVisible();
 });
 
+test('configura el objetivo y registra desde Hoy los pasos del día', async ({ page }) => {
+  await openMvpWithProfile(page);
+  await openMvpSection(page, 'Hoy');
+  await expect(page.getByText(/0 \/ 10[.\s]?000/)).toBeVisible();
+  await openMvpSection(page, 'Ajustes y privacidad');
+  await page.getByLabel('Objetivo diario de pasos').fill('12000');
+  await page.getByRole('button', { name: 'Guardar objetivo diario de pasos' }).click();
+  await expect(page.getByText('Objetivo diario de pasos actualizado.')).toBeVisible();
+  await openMvpSection(page, 'Hoy');
+  await expect(page.getByText(/0 \/ 12[.\s]?000/)).toBeVisible();
+  await page.getByRole('button', { name: 'Añadir pasos de hoy' }).click();
+  await page.getByLabel('Número de pasos de hoy').fill('8765');
+  await page.getByRole('button', { name: 'Guardar pasos de hoy' }).click();
+  await expect(page.getByText(/8[.\s]?765 pasos guardados para hoy\./)).toBeVisible();
+  await expect(page.getByText(/8[.\s]?765 \/ 12[.\s]?000/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Cambiar pasos de hoy' })).toBeVisible();
+  await page.reload();
+  await openMvpSection(page, 'Hoy');
+  await expect(page.getByText(/8[.\s]?765 \/ 12[.\s]?000/)).toBeVisible();
+});
+
 test('configura agua y cancela o confirma el borrado sin tocar la base histórica', async ({ page }) => {
   await openMvpWithProfile(page);
   const legacyBefore = await readLegacyState(page);
