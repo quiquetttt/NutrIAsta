@@ -16,7 +16,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="NutrIAsta" />
         <link rel="manifest" href="/manifest.webmanifest" />
-        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180.png" />
         <ScrollViewStyleReset />
         <style dangerouslySetInnerHTML={{ __html: rootStyles }} />
       </head>
@@ -45,7 +45,10 @@ const rootStyles = `
   }
   .na-shell { width: 100%; min-width: 0; }
   .na-rail { display: none; }
-  .na-surface { min-width: 0; min-height: 100dvh; background: var(--na-canvas); }
+  .na-surface {
+    min-width: 0; height: 100dvh; min-height: 0; overflow-x: clip; overflow-y: auto;
+    overscroll-behavior-y: none; -webkit-overflow-scrolling: touch; background: var(--na-canvas);
+  }
   .na-header {
     position: sticky; z-index: 20; top: 0; display: flex; align-items: flex-end;
     justify-content: space-between; gap: 12px; padding:

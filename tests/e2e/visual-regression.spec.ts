@@ -91,6 +91,7 @@ async function addWeight(page: Page, date: string, time: string, value: string) 
 }
 
 async function stableScreenshot(page: Page, name: string) {
+  await page.locator('.na-surface').evaluate((element) => { element.scrollLeft = 0; });
   await expect(page).toHaveScreenshot(name, {
     animations: 'disabled',
     caret: 'hide',

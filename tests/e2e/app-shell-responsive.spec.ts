@@ -4,6 +4,35 @@ import { openMvpSection, openMvpWithProfile } from './mvp-fixture';
 
 const MOBILE_WIDTHS = [320, 375, 390, 430] as const;
 const DESTINATIONS = ['Hoy', 'Diario', 'Entrenar', 'Inventario', 'Perfil'] as const;
+const SCROLL_SECTIONS = [
+  'Hoy',
+  'Diario',
+  'Alimentos',
+  'Recetas',
+  'Entrenar',
+  'Inventario',
+  'Perfil y objetivos',
+  'Historial de peso',
+  'Ajustes y privacidad',
+] as const;
+
+test('declara y sirve el icono aprobado específico para la pantalla de inicio del iPhone', async ({ page, request }) => {
+  await page.goto('/');
+  await expect(page.locator('link[rel="apple-touch-icon"][sizes="180x180"]')).toHaveAttribute(
+    'href',
+    '/icons/apple-touch-icon-180.png',
+  );
+  const response = await request.get('/icons/apple-touch-icon-180.png');
+  expect(response.ok()).toBe(true);
+  expect(response.headers()['content-type']).toContain('image/png');
+  const dimensions = await page.evaluate(() => new Promise<{ width: number; height: number }>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+    image.onerror = () => reject(new Error('No se pudo cargar el icono local de NutrIAsta.'));
+    image.src = '/icons/apple-touch-icon-180.png';
+  }));
+  expect(dimensions).toEqual({ width: 180, height: 180 });
+});
 
 test('la navegación aprobada cabe en todos los anchos de iPhone sin desbordamiento', async ({ page }) => {
   await openMvpWithProfile(page);
@@ -22,6 +51,41 @@ test('la navegación aprobada cabe en todos los anchos de iPhone sin desbordamie
     expect(geometry.contentWidth).toBeGreaterThan(0);
     expect(geometry.bottom?.left).toBeGreaterThanOrEqual(0);
     expect(geometry.bottom?.right).toBeLessThanOrEqual(width);
+  }
+});
+
+test('permite desplazar verticalmente todas las secciones cuando su contenido supera el viewport', async ({ page }) => {
+  await openMvpWithProfile(page);
+  for (const width of MOBILE_WIDTHS) {
+    await page.setViewportSize({ width, height: 568 });
+    for (const section of SCROLL_SECTIONS) {
+      await openMvpSection(page, section);
+      const surface = page.locator('.na-surface');
+      const before = await surface.evaluate((element) => {
+        element.scrollTop = 0;
+        const sentinel = document.createElement('div');
+        sentinel.dataset.scrollTestSentinel = 'true';
+        sentinel.style.width = '1px';
+        sentinel.style.height = '1200px';
+        element.querySelector('.na-content')?.append(sentinel);
+        return {
+          overflowY: getComputedStyle(element).overflowY,
+          maximumScroll: element.scrollHeight - element.clientHeight,
+          scrollWidth: element.scrollWidth,
+          clientWidth: element.clientWidth,
+        };
+      });
+      expect(before.overflowY).toBe('auto');
+      expect(before.maximumScroll).toBeGreaterThan(40);
+      expect(before.scrollWidth, `${section} a ${width}px no debe desbordar horizontalmente`)
+        .toBeLessThanOrEqual(before.clientWidth);
+      await surface.evaluate((element) => { element.scrollTop = 500; });
+      await expect.poll(() => surface.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+      await surface.evaluate((element) => {
+        element.querySelector('[data-scroll-test-sentinel="true"]')?.remove();
+        element.scrollTop = 0;
+      });
+    }
   }
 });
 
@@ -47,6 +111,19 @@ test('mantiene navegación, texto ampliado, teclado y movimiento reducido', asyn
   await page.keyboard.press('Tab');
   expect(await page.evaluate(() => document.activeElement?.tagName)).toBe('BUTTON');
   expect(await page.evaluate(() => getComputedStyle(document.activeElement!).outlineStyle)).not.toBe('none');
+});
+
+test('mantiene desplazamiento vertical con texto al 200 %', async ({ page }) => {
+  await openMvpWithProfile(page);
+  await page.setViewportSize({ width: 320, height: 700 });
+  await page.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
+  await openMvpSection(page, 'Perfil y objetivos');
+  const surface = page.locator('.na-surface');
+  const maximumScroll = await surface.evaluate((element) => element.scrollHeight - element.clientHeight);
+  expect(maximumScroll).toBeGreaterThan(100);
+  await surface.evaluate((element) => { element.scrollTop = 600; });
+  await expect.poll(() => surface.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
 
 test('usa barra lateral en escritorio y conserva todos los accesos', async ({ page }) => {

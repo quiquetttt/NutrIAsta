@@ -16,5 +16,5 @@ export const META_KEYS = {
   restorePhase: 'restorePhase',
 } as const;
 
-export const APP_VERSION = '0.3.0';
+export const APP_VERSION = '0.3.1';
 export const BACKUP_FORMAT_VERSION = 1;

@@ -6,6 +6,7 @@ const requiredFiles = [
   'index.html',
   'manifest.webmanifest',
   'sw.js',
+  'icons/apple-touch-icon-180.png',
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/maskable-512.png',
@@ -32,6 +33,21 @@ if (!contentTag || !contentTag.includes('width:100%') || !contentTag.includes('m
 if (contentTag.includes('width:0px')) {
   throw new Error('El contenido principal se exportó con width:0px.');
 }
+if (!/\.na-surface\s*\{[^}]*overflow-y:\s*auto/.test(html)) {
+  throw new Error('La superficie principal debe permitir el desplazamiento vertical.');
+}
+if (!html.includes('rel="apple-touch-icon"') || !html.includes('/icons/apple-touch-icon-180.png')) {
+  throw new Error('La compilación no declara el icono específico de la pantalla de inicio del iPhone.');
+}
+
+const touchIcon = readFileSync(join(dist, 'icons', 'apple-touch-icon-180.png'));
+if (
+  touchIcon.toString('ascii', 1, 4) !== 'PNG' ||
+  touchIcon.readUInt32BE(16) !== 180 ||
+  touchIcon.readUInt32BE(20) !== 180
+) {
+  throw new Error('El icono de pantalla de inicio debe ser un PNG de 180 × 180 px.');
+}
 
 const serviceWorker = readFileSync(join(dist, 'sw.js'), 'utf8');
 if (!serviceWorker.includes('SKIP_WAITING')) {
@@ -46,6 +62,9 @@ if (
 }
 if (serviceWorker.includes('indexedDB.deleteDatabase')) {
   throw new Error('El service worker no puede eliminar IndexedDB.');
+}
+if (!serviceWorker.includes('icons/apple-touch-icon-180.png')) {
+  throw new Error('El service worker debe conservar offline el icono de pantalla de inicio.');
 }
 
 process.stdout.write('Compilación PWA verificada: SSR, manifiesto, iconos y service worker correctos.\n');
