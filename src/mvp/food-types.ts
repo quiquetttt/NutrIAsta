@@ -14,7 +14,7 @@ export interface Food {
   energyKj: number | null;
   proteinG: number;
   carbohydratesG: number;
-  fatG: number;
+  fatG: number | null;
   energySource: FoodEnergySource;
   dataOrigin: FoodDataOrigin;
   notes: string;

@@ -48,4 +48,26 @@ describe('catálogo local', () => {
     expect(await repository.portions(food.id)).toMatchObject([{ name: 'Cucharada editada', amount: 20 }]);
     await repository.save(draft, { photo: null }, food.id); expect(await repository.photo(food.id)).toBeUndefined();
   });
+  it('permite omitir kJ y grasas declaradas sin convertir la ausencia en cero', async () => {
+    database = new NutrIAstaMainDatabase(`food-optional-${crypto.randomUUID()}`); await database.open();
+    await database.metadata.bulkPut([{ key: 'activeSource', value: 'main' }, { key: 'activeMainDatasetId', value: 'dataset-ficticio' }]);
+    const repository = new FoodRepository(database);
+    const food = await repository.save({
+      name: 'Etiqueta parcial ficticia',
+      brand: '',
+      supermarket: '',
+      baseUnit: 'g',
+      energyKcal: 123,
+      energyKj: null,
+      proteinG: 7,
+      carbohydratesG: 19,
+      fatG: null,
+      energySource: 'declared',
+      dataOrigin: 'label-photo',
+      notes: '',
+      favorite: false,
+    }, {});
+    expect(food).toMatchObject({ energyKj: null, fatG: null });
+    await expect(repository.save({ ...food, energySource: 'calculated' }, {})).rejects.toThrow(/grasas/);
+  });
 });

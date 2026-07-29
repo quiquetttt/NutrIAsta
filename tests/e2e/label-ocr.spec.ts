@@ -13,11 +13,18 @@ test('procesa y revisa una etiqueta ficticia sin tráfico externo', async ({ pag
   const before = await foodCount(page);
   await page.getByRole('button', { name: 'Introducir alimento manualmente' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Alimento OCR ficticio');
-  await page.getByLabel('Energía (kcal)').fill('100');
+  await page.getByLabel('Calorías (kcal) · obligatorio').fill('100');
   await page.getByRole('button', { name: 'Guardar alimento' }).click();
   await page.getByRole('button', { name: 'Fotografiar etiqueta nutricional' }).click();
   await page.getByRole('button', { name: 'Seleccionar de Fotos o Archivos' }).click();
   await page.getByLabel('Seleccionar fotografía de etiqueta').setInputFiles(await fictitiousLabel(page));
+  await expect(page.getByLabel('Editor táctil de recorte de la etiqueta')).toBeVisible();
+  await page.getByRole('button', { name: 'Acercar recorte' }).click();
+  await page.getByText('Ajuste numérico accesible').click();
+  await expect(page.getByLabel('Recortar arriba (%)')).not.toHaveValue('0');
+  await page.getByRole('button', { name: 'Restablecer recorte' }).click();
+  await expect(page.getByLabel('Recortar arriba (%)')).toHaveValue('0');
+  await page.getByText('Ajuste numérico accesible').click();
   await page.getByRole('button', { name: 'Usar esta fotografía' }).click();
   await expect(page.getByRole('button', { name: 'Revisar etiqueta nutricional' })).toBeVisible({ timeout: 60_000 });
   await page.getByRole('button', { name: 'Revisar etiqueta nutricional' }).click();
@@ -28,17 +35,17 @@ test('procesa y revisa una etiqueta ficticia sin tráfico externo', async ({ pag
     maxDiffPixelRatio: 0.01,
   });
   await page.getByRole('button', { name: 'Editar fotografía' }).click();
-  await expect(page.getByLabel('Vista previa antes de recodificar')).toBeVisible();
+  await expect(page.getByLabel('Editor táctil de recorte de la etiqueta')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Usar esta fotografía' })).toBeVisible();
   await page.getByRole('button', { name: 'Usar esta fotografía' }).click();
   await expect(page.getByRole('button', { name: 'Revisar etiqueta nutricional' })).toBeVisible({ timeout: 60_000 });
   await page.getByRole('button', { name: 'Revisar etiqueta nutricional' }).click();
   await page.getByLabel('Nombre del alimento').fill('Alimento OCR ficticio');
-  await page.getByLabel('Energía (kcal)').fill('400');
-  await page.getByLabel('Energía (kJ)').fill('1680');
-  await page.getByLabel('Grasas (g)').fill('12,5');
-  await page.getByLabel('Carbohidratos (g)').fill('54');
-  await page.getByLabel('Proteínas (g)').fill('16');
+  await page.getByLabel('Calorías (kcal) · obligatorio').fill('400');
+  await page.getByLabel('Energía (kJ) · opcional').fill('1680');
+  await page.getByLabel('Grasas (g) · opcional').fill('12,5');
+  await page.getByLabel('Hidratos de carbono (g) · obligatorio').fill('54');
+  await page.getByLabel('Proteínas (g) · obligatorio').fill('16');
   for (const width of [320, 375, 390, 430]) {
     await page.setViewportSize({ width, height: 844 });
     const geometry = await page.evaluate(() => ({

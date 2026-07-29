@@ -9,9 +9,9 @@ test('gestiona varias porciones, energía calculada, favoritos y búsqueda', asy
   await page.getByLabel('Nombre', { exact: true }).fill('Alimento E2E ficticio');
   await page.getByLabel('Marca (opcional)').fill('Marca E2E');
   await page.getByRole('radio', { name: 'Calculada 4/4/9' }).click();
-  await page.getByLabel('Proteínas (g)').fill('10');
-  await page.getByLabel('Carbohidratos (g)').fill('20');
-  await page.getByLabel('Grasas (g)').fill('5');
+  await page.getByLabel('Proteínas (g) · obligatorio').fill('10');
+  await page.getByLabel('Hidratos de carbono (g) · obligatorio').fill('20');
+  await page.getByLabel('Grasas (g) · opcional').fill('5');
 
   await page.getByLabel('Nombre de porción').fill('Bol ficticio');
   await page.getByLabel('Cantidad de la porción (g)').fill('75');
@@ -41,4 +41,30 @@ test('gestiona varias porciones, energía calculada, favoritos y búsqueda', asy
   await page.getByLabel('Buscar alimentos').fill('Marca E2E');
   await expect(page.getByText('Alimento E2E ficticio', { exact: true })).toBeVisible();
   await page.getByLabel('Buscar alimentos').fill('');
+});
+
+test('guarda un alimento declarado sin kJ ni grasas y no inventa esos valores', async ({ page }) => {
+  await openMvpWithProfile(page);
+  await openMvpSection(page, 'Alimentos');
+  await page.getByRole('button', { name: 'Introducir alimento manualmente' }).click();
+  await page.getByLabel('Nombre', { exact: true }).fill('Alimento parcial ficticio');
+  await page.getByLabel('Calorías (kcal) · obligatorio').fill('123');
+  await page.getByLabel('Proteínas (g) · obligatorio').fill('7');
+  await page.getByLabel('Hidratos de carbono (g) · obligatorio').fill('19');
+  await page.getByRole('button', { name: 'Guardar alimento' }).click();
+  await expect(page.getByText(/123\.0 kcal · P 7 · HC 19 · G No disponible/)).toBeVisible();
+  expect(await page.evaluate(async () => {
+    const request = indexedDB.open('nutriasta-main');
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const rows = await new Promise<Array<{ name: string; energyKj: number | null; fatG: number | null }>>((resolve, reject) => {
+      const query = database.transaction('foods').objectStore('foods').getAll();
+      query.onsuccess = () => resolve(query.result);
+      query.onerror = () => reject(query.error);
+    });
+    database.close();
+    return rows.find(({ name }) => name === 'Alimento parcial ficticio');
+  })).toMatchObject({ energyKj: null, fatG: null });
 });

@@ -6,7 +6,7 @@ test('mantiene inventario, agotamiento, compra y movimientos en una operación t
   await openMvpSection(page, 'Alimentos');
   await page.getByRole('button', { name: 'Introducir alimento manualmente' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Inventario ficticio');
-  await page.getByLabel('Energía (kcal)').fill('100');
+  await page.getByLabel('Calorías (kcal) · obligatorio').fill('100');
   await page.getByRole('button', { name: 'Guardar alimento' }).click();
 
   await openMvpSection(page, 'Inventario');
@@ -39,7 +39,7 @@ test('cancelar la revisión de consumo no escribe nutrición, inventario, decisi
   await openMvpSection(page, 'Alimentos');
   await page.getByRole('button', { name: 'Introducir alimento manualmente' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Cancelación ficticia');
-  await page.getByLabel('Energía (kcal)').fill('100');
+  await page.getByLabel('Calorías (kcal) · obligatorio').fill('100');
   await page.getByRole('button', { name: 'Guardar alimento' }).click();
   await openMvpSection(page, 'Diario');
 

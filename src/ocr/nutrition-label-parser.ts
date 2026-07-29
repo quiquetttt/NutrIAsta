@@ -15,7 +15,7 @@ const FIELD_DEFINITIONS: Array<{
   { key: 'energyKj', label: 'Energía', unit: 'kJ', matches: (line) => /energ|valor energ/.test(line) && /\bkj\b/i.test(line) },
   { key: 'energyKcal', label: 'Energía', unit: 'kcal', matches: (line) => /\bkcal\b/i.test(line) },
   { key: 'fatG', label: 'Grasas', unit: 'g', matches: (line) => /grasas?|l[ií]pidos?/.test(line) && !/saturad|monoinsatur|poliinsatur/.test(line) },
-  { key: 'carbohydratesG', label: 'Carbohidratos', unit: 'g', matches: (line) => /hidratos?\s+de\s+carbono|carbohidratos?/.test(line) && !/az[uú]car/.test(line) },
+  { key: 'carbohydratesG', label: 'Hidratos de carbono', unit: 'g', matches: (line) => /hidratos?\s+de\s+carbono|carbohidratos?/.test(line) && !/az[uú]car/.test(line) },
   { key: 'proteinG', label: 'Proteínas', unit: 'g', matches: (line) => /prote[ií]nas?/.test(line) },
 ];
 

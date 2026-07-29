@@ -209,8 +209,8 @@ function Progress({ value }: { value: number }) {
 function StepsProgress({ value }: { value: number }) {
   return <View accessibilityLabel={`${value} por ciento del objetivo diario de pasos`} style={{ backgroundColor: '#e9eef2', borderRadius: 999, height: 10, overflow: 'hidden' }}><View style={{ backgroundColor: palette.navySoft, borderRadius: 999, height: '100%', width: `${Math.min(100, value)}%` }} /></View>;
 }
-function Macro({ label, value, target }: { label: string; value: number; target: number }) {
-  return <Text selectable style={{ backgroundColor: '#17334d', borderRadius: 999, color: '#fff', fontSize: 13, fontWeight: '800', paddingHorizontal: 10, paddingVertical: 7 }}>{label} {Math.round(value)}/{Math.round(target)} g</Text>;
+function Macro({ label, value, target }: { label: string; value: number | null; target: number }) {
+  return <Text selectable style={{ backgroundColor: '#17334d', borderRadius: 999, color: '#fff', fontSize: 13, fontWeight: '800', paddingHorizontal: 10, paddingVertical: 7 }}>{label} {value === null ? 'No disponible' : `${Math.round(value)}/${Math.round(target)} g`}</Text>;
 }
 function Notice({ text }: { text: string }) {
   return <View accessibilityLiveRegion="polite" style={{ backgroundColor: palette.dangerBackground, borderRadius: 16, padding: 14 }}><Text selectable style={{ color: palette.danger, fontWeight: '800' }}>{text}</Text></View>;

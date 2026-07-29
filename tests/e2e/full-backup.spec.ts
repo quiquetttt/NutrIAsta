@@ -78,7 +78,7 @@ async function populateAllMvpTables(page: import('@playwright/test').Page) {
   await openMvpSection(page, 'Alimentos');
   await page.getByRole('button', { name: 'Introducir alimento manualmente' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Alimento backup ficticio');
-  await page.getByLabel('Energía (kcal)').fill('120');
+  await page.getByLabel('Calorías (kcal) · obligatorio').fill('120');
   await page.getByLabel('Nombre de porción').fill('Porción backup ficticia');
   await page.getByLabel('Cantidad de la porción (g)').fill('80');
   await page.getByRole('button', { name: 'Añadir porción' }).click();

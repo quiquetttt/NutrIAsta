@@ -6,10 +6,10 @@ test('crea una receta, la planifica y conserva su snapshot al consumirla', async
   await openMvpSection(page, 'Alimentos');
   await page.getByRole('button', { name: 'Introducir alimento manualmente' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Ingrediente ficticio');
-  await page.getByLabel('Energía (kcal)').fill('300');
-  await page.getByLabel('Proteínas (g)').fill('12');
-  await page.getByLabel('Carbohidratos (g)').fill('40');
-  await page.getByLabel('Grasas (g)').fill('8');
+  await page.getByLabel('Calorías (kcal) · obligatorio').fill('300');
+  await page.getByLabel('Proteínas (g) · obligatorio').fill('12');
+  await page.getByLabel('Hidratos de carbono (g) · obligatorio').fill('40');
+  await page.getByLabel('Grasas (g) · opcional').fill('8');
   await page.getByRole('button', { name: 'Guardar alimento' }).click();
 
   await openMvpSection(page, 'Recetas');

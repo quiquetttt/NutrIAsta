@@ -213,7 +213,7 @@ export class InventoryConsumptionService {
         energyKcal: totals.energyKcal * factor,
         proteinG: totals.proteinG * factor,
         carbohydratesG: totals.carbohydratesG * factor,
-        fatG: totals.fatG * factor,
+        fatG: totals.fatG === null ? null : totals.fatG * factor,
       },
       note: input.note.trim(),
       createdAt: now,

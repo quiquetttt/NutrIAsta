@@ -33,7 +33,13 @@ export class FoodRepository {
     const legacy = Array.isArray(portionsOrOptions);
     const options: FoodSaveOptions = legacy ? { portions: portionsOrOptions, photo: typeof photoOrId === 'string' ? undefined : photoOrId } : portionsOrOptions;
     const id = legacy ? legacyId : typeof photoOrId === 'string' ? photoOrId : undefined;
-    const normalizedDraft = draft.energySource === 'calculated' ? { ...draft, energyKcal: macroEnergy(draft.proteinG, draft.carbohydratesG, draft.fatG), energyKj: null } : draft;
+    const fatG = draft.fatG;
+    if (draft.energySource === 'calculated' && fatG === null) {
+      throw new Error('Para calcular las calorías mediante 4/4/9 también debes indicar las grasas.');
+    }
+    const normalizedDraft = draft.energySource === 'calculated'
+      ? { ...draft, energyKcal: macroEnergy(draft.proteinG, draft.carbohydratesG, fatG as number), energyKj: null }
+      : draft;
     validateFood(normalizedDraft);
     const datasetId = await this.datasetId();
     const previous = id ? await this.db.foods.get([datasetId, id]) : undefined;
@@ -75,7 +81,8 @@ function validatePortions(portions: FoodPortionDraft[]) {
 
 function validateFood(draft: FoodDraft) {
   if (!draft.name.trim() || draft.name.length > 120) throw new Error('Introduce un nombre de alimento válido.');
-  for (const [label, value] of Object.entries({ calorías: draft.energyKcal, proteínas: draft.proteinG, carbohidratos: draft.carbohydratesG, grasas: draft.fatG })) if (!Number.isFinite(value) || value < 0 || value > 10000) throw new Error(`El valor de ${label} no es válido.`);
-  if (draft.baseUnit === 'g' && [draft.proteinG, draft.carbohydratesG, draft.fatG].some((value) => value > 100)) throw new Error('Los macronutrientes por 100 g no pueden superar 100 g individualmente.');
+  for (const [label, value] of Object.entries({ calorías: draft.energyKcal, proteínas: draft.proteinG, 'hidratos de carbono': draft.carbohydratesG })) if (!Number.isFinite(value) || value < 0 || value > 10000) throw new Error(`El valor de ${label} no es válido.`);
+  if (draft.fatG !== null && (!Number.isFinite(draft.fatG) || draft.fatG < 0 || draft.fatG > 10000)) throw new Error('El valor de grasas no es válido.');
+  if (draft.baseUnit === 'g' && [draft.proteinG, draft.carbohydratesG, draft.fatG].some((value) => value !== null && value > 100)) throw new Error('Los macronutrientes por 100 g no pueden superar 100 g individualmente.');
 }
 export const foodRepository = new FoodRepository();

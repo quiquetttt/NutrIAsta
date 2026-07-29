@@ -39,6 +39,14 @@ Proteínas 3.0 g`, 88);
     expect(value(parsed, 'per-100-ml', 'carbohydratesG')).toBe(8.2);
   });
 
+  it('trata hidratos de carbono y carbohidratos como el mismo campo', () => {
+    const hidratos = parseNutritionLabel('Por 100 g\nHidratos de carbono 21 g', 90);
+    const carbohidratos = parseNutritionLabel('Por 100 g\nCarbohidratos 21 g', 90);
+    expect(value(hidratos, 'per-100-g', 'carbohydratesG')).toBe(21);
+    expect(value(carbohidratos, 'per-100-g', 'carbohydratesG')).toBe(21);
+    expect(hidratos.values.find(({ key }) => key === 'carbohydratesG')?.label).toBe('Hidratos de carbono');
+  });
+
   it('deja vacíos los campos ausentes y avisa de columna incompleta', () => {
     const parsed = parseNutritionLabel('Por 100 g\nProteínas 7 g', 91);
     expect(value(parsed, 'per-100-g', 'energyKcal')).toBeNull();

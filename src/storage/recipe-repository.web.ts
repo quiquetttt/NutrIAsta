@@ -15,5 +15,5 @@ export class RecipeRepository{
  async setFavorite(id:string,favorite:boolean){const datasetId=await this.datasetId();await trackWrite(()=>this.db.recipes.update([datasetId,id],{favorite,updatedAt:new Date().toISOString()}));}
  async setArchived(id:string,archived:boolean){const datasetId=await this.datasetId();await trackWrite(()=>this.db.recipes.update([datasetId,id],{archived,updatedAt:new Date().toISOString()}));}
 }
-function divide(value:{energyKcal:number;proteinG:number;carbohydratesG:number;fatG:number},by:number){return{energyKcal:value.energyKcal/by,proteinG:value.proteinG/by,carbohydratesG:value.carbohydratesG/by,fatG:value.fatG/by};}
+function divide(value:{energyKcal:number;proteinG:number;carbohydratesG:number;fatG:number|null},by:number){return{energyKcal:value.energyKcal/by,proteinG:value.proteinG/by,carbohydratesG:value.carbohydratesG/by,fatG:value.fatG===null?null:value.fatG/by};}
 export const recipeRepository=new RecipeRepository();

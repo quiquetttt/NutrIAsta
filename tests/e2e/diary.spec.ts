@@ -64,7 +64,7 @@ test('la interfaz no ofrece g para alimentos en ml ni ml para alimentos en g', a
   await page.getByRole('button', { name: 'Introducir alimento manualmente' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Bebida ficticia');
   await page.getByRole('radio', { name: 'Por 100 ml' }).click();
-  await page.getByLabel('Energía (kcal)').fill('40');
+  await page.getByLabel('Calorías (kcal) · obligatorio').fill('40');
   await page.getByRole('button', { name: 'Guardar alimento' }).click();
 
   await openMvpSection(page, 'Diario');
@@ -80,7 +80,7 @@ test('la interfaz no ofrece g para alimentos en ml ni ml para alimentos en g', a
 async function createFood(page: import('@playwright/test').Page, name: string, energy: number, portionName?: string, portionAmount?: number) {
   await page.getByRole('button', { name: 'Introducir alimento manualmente' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill(name);
-  await page.getByLabel('Energía (kcal)').fill(String(energy));
+  await page.getByLabel('Calorías (kcal) · obligatorio').fill(String(energy));
   if (portionName && portionAmount) {
     await page.getByLabel('Nombre de porción').fill(portionName);
     await page.getByLabel('Cantidad de la porción (g)').fill(String(portionAmount));

@@ -35,7 +35,7 @@ test('mantiene los estados visuales aprobados en móvil y escritorio', async ({ 
   await openMvpSection(page, 'Alimentos');
   await page.getByRole('button', { name: 'Introducir alimento manualmente' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Carne ficticia visual');
-  await page.getByLabel('Energía (kcal)').fill('120');
+  await page.getByLabel('Calorías (kcal) · obligatorio').fill('120');
   await page.getByRole('button', { name: 'Guardar alimento' }).click();
   await openMvpSection(page, 'Inventario');
   await page.getByLabel('Cantidad canónica (g)').fill('200');
