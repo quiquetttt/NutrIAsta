@@ -99,7 +99,9 @@ describe('backup completo y restauración temporal', () => {
     const { datasetId, service } = await fixture(); const exported = await service.create('clave-ficticia-segura');
     const file = new File([exported.blob], exported.filename, { type: exported.blob.type });
     const decoded = await decodeFullBackup(file, 'clave-ficticia-segura');
-    expect(decoded.manifest.formatVersion).toBe(3);
+    expect(decoded.manifest.formatVersion).toBe(4);
+    expect((decoded.manifest as { ocrProvenance?: { recognizedTextIncluded: boolean } }).ocrProvenance)
+      .toEqual(expect.objectContaining({ recognizedTextIncluded: false }));
     expect(Object.keys(decoded.manifest.entityCounts)).toHaveLength(FULL_DATA_TABLES_V3.length);
     for (const count of Object.values(decoded.manifest.entityCounts)) expect(count).toBe(1);
     const prepared = await service.prepare(file, 'clave-ficticia-segura');
@@ -114,6 +116,7 @@ describe('backup completo y restauración temporal', () => {
     expect((await database!.profiles.where('datasetId').equals(prepared.candidateDatasetId).first())?.dailyStepsGoal).toBe(10_000);
     expect((await database!.diaryDays.where('datasetId').equals(prepared.candidateDatasetId).first())?.steps).toBe(8_765);
     expect((await database!.foodPortions.where('datasetId').equals(prepared.candidateDatasetId).first())?.name).toBe('Bol ficticio');
+    expect((await database!.foods.where('datasetId').equals(prepared.candidateDatasetId).first())?.dataOrigin).toBe('manual');
     const restoredPhoto = await database!.foodPhotos.where('datasetId').equals(prepared.candidateDatasetId).first();
     expect(restoredPhoto?.checksum).toBe(await sha256Blob(restoredPhoto!.blob));
   });
@@ -179,6 +182,31 @@ describe('backup completo y restauración temporal', () => {
     for (const table of FULL_DATA_TABLES_V3.slice(FULL_DATA_TABLES.length)) {
       expect(await database!.table(table).where('datasetId').equals(prepared.candidateDatasetId).count()).toBe(0);
     }
+    await service.cancel(prepared);
+  });
+  it('mantiene la importación de formato 3 con las 26 tablas disponibles', async () => {
+    const { datasetId, service } = await fixture();
+    const data = Object.fromEntries(FULL_DATA_TABLES_V3.map((table) => [table, []]));
+    const dataJson = JSON.stringify(data);
+    const checksum = await sha256Text(dataJson);
+    const fingerprint = await sha256Text(JSON.stringify({ dataChecksum: checksum, media: [] }));
+    const manifest = {
+      format: 'nutriasta-full-backup', formatVersion: 3, databaseSchemaVersion: 6,
+      minimumAppVersion: '0.3.0', appVersion: '0.3.3', backupId: 'backup-v3-ficticio',
+      sourceDatasetId: 'dataset-v3', exportedAt: '2026-07-29T12:00:00.000Z',
+      entityCounts: Object.fromEntries(FULL_DATA_TABLES_V3.map((table) => [table, 0])),
+      files: [{ path: FULL_BACKUP_DATA_PATH, kind: 'data', size: new TextEncoder().encode(dataJson).byteLength, checksum, mimeType: 'application/json' }],
+      contentFingerprint: fingerprint,
+    };
+    const writer = new ZipWriter(new BlobWriter('application/x-nutriasta-backup'), { password: 'clave-ficticia-segura', encryptionStrength: 3 });
+    await writer.add(FULL_BACKUP_DATA_PATH, new TextReader(dataJson));
+    await writer.add(FULL_BACKUP_MANIFEST_PATH, new TextReader(JSON.stringify(manifest)));
+    const prepared = await service.prepare(new File([await writer.close()], 'compatibilidad-v3.nutriasta.zip'), 'clave-ficticia-segura');
+    expect(prepared.manifest.formatVersion).toBe(3);
+    expect((await database!.metadata.get('activeMainDatasetId'))?.value).toBe(datasetId);
+    expect((await database!.datasets.get(prepared.candidateDatasetId))?.source).toBe('format-3-backup');
+    expect(await countsFor(prepared.candidateDatasetId))
+      .toEqual(Object.fromEntries(FULL_DATA_TABLES_V3.map((table) => [table, 0])));
     await service.cancel(prepared);
   });
   it('reutiliza el decodificador histórico e importa formato 1 con las doce tablas MVP 2 vacías', async () => {

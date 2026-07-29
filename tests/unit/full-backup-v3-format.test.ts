@@ -103,13 +103,17 @@ describe('contrato del backup completo formato 3', () => {
     expect(() => parseFullBackupV3Data(oversizedText, manifest)).toThrow(/superan el límite/);
   });
 
-  it('despacha únicamente los formatos 1, 2 y 3 conocidos', () => {
+  it('despacha los formatos 1, 2, 3 y 4 conocidos', () => {
     expect(identifyBackupFormat(JSON.stringify({ format: 'nutriasta-backup', formatVersion: 1 }))).toBe(1);
     expect(identifyBackupFormat(JSON.stringify({ format: 'nutriasta-full-backup', formatVersion: 2 }))).toBe(2);
     expect(identifyBackupFormat(JSON.stringify(manifest))).toBe(3);
-    expect(() => identifyBackupFormat(JSON.stringify({
+    expect(identifyBackupFormat(JSON.stringify({
       format: 'nutriasta-full-backup',
       formatVersion: 4,
+    }))).toBe(4);
+    expect(() => identifyBackupFormat(JSON.stringify({
+      format: 'nutriasta-full-backup',
+      formatVersion: 5,
     }))).toThrow(/no es compatible/);
   });
 });

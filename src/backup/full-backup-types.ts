@@ -1,5 +1,6 @@
 import type { MainMigrationSession } from '@/storage/main-dataset-types';
 import type { FullBackupManifestV3 } from '@/backup/full-backup-v3-types';
+import type { FullBackupManifestV4 } from '@/backup/full-backup-v4-types';
 import type { BackupFileDescriptor } from '@/storage/dataset-types';
 
 export const FULL_DATA_TABLES = [
@@ -51,7 +52,8 @@ export interface LegacyBackupManifestForRestore {
 export type RestorableBackupManifest =
   | LegacyBackupManifestForRestore
   | FullBackupManifest
-  | FullBackupManifestV3;
+  | FullBackupManifestV3
+  | FullBackupManifestV4;
 
 export interface PreparedFullRestore {
   candidateDatasetId: string;

@@ -1,7 +1,7 @@
 import { textByteLength } from '@/backup/backup-format';
 import { FULL_BACKUP_V3_LIMITS } from '@/backup/full-backup-v3-format';
 
-export type SupportedBackupFormat = 1 | 2 | 3;
+export type SupportedBackupFormat = 1 | 2 | 3 | 4;
 
 export function identifyBackupFormat(manifestText: string): SupportedBackupFormat {
   if (textByteLength(manifestText) > FULL_BACKUP_V3_LIMITS.manifestBytes) {
@@ -13,5 +13,6 @@ export function identifyBackupFormat(manifestText: string): SupportedBackupForma
   if (candidate.format === 'nutriasta-backup' && candidate.formatVersion === 1) return 1;
   if (candidate.format === 'nutriasta-full-backup' && candidate.formatVersion === 2) return 2;
   if (candidate.format === 'nutriasta-full-backup' && candidate.formatVersion === 3) return 3;
+  if (candidate.format === 'nutriasta-full-backup' && candidate.formatVersion === 4) return 4;
   throw new Error('La versión del backup no es compatible.');
 }

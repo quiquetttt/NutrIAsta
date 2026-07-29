@@ -16,8 +16,8 @@ NutrIAsta es una PWA personal en español para registrar nutrición, entrenamien
 - Calendario mensual, objetivos semanales efectivos desde un lunes, sesiones simples con tipos y notas, copia e historial desplegable. La interfaz no incluye ejercicios, series, cargas ni ejercicios reutilizables.
 - Historial y gráfica neutral de peso, sin fotografías corporales, análisis ni diagnóstico.
 - Inventario canónico en gramos o mililitros, movimientos inmutables, lista de compra, completar/deshacer y disponibilidad de recetas. Nutrición e inventario se actualizan atómicamente.
-- Backup completo formato 3 de las 26 tablas, ZIP cifrado con AES-256, y restauración mediante dataset temporal, verificación y cambio atómico del puntero activo.
-- Importación de backups de formatos 1, 2 y 3. La base `nutriasta` 0.1.1 se mantiene en versión 1 y solo lectura; `nutriasta-main` usa una migración exclusivamente aditiva hasta Dexie 6.
+- Backup completo formato 4 de las 26 tablas, ZIP cifrado con AES-256, fotografías y procedencia de alta; el texto OCR completo no se persiste. La restauración usa un dataset temporal, verificación y cambio atómico del puntero activo.
+- Importación de backups de formatos 1, 2, 3 y 4. La base `nutriasta` 0.1.1 se mantiene en versión 1 y solo lectura; `nutriasta-main` permanece en Dexie 6 porque esta actualización no necesita tablas ni índices nuevos.
 - PWA instalable, apertura offline y actualización controlada sin `skipWaiting` automático.
 
 Quedan excluidos Open Food Facts, códigos de barras, sugerencia automática de PAL, análisis corporal de fotografías, recomendaciones médicas, nube y cualquier API remota. El OCR de etiquetas se ejecuta exclusivamente en el dispositivo y siempre exige revisión y confirmación manual.
@@ -63,9 +63,9 @@ Las cinco omisiones son dos reaperturas offline bajo service worker —la apertu
 
 Playwright comprueba estructura accesible, teclado, foco visible, contraste, texto al 200 % y movimiento reducido, pero no sustituye VoiceOver ni Safari real. Lectura y orden con VoiceOver, anuncios de diálogos, captura/selección de fotografías, apertura offline y actualización desde la PWA instalada siguen pendientes de validación física en el iPhone.
 
-## Backup formato 3 y restauración segura
+## Backup formato 4 y restauración segura
 
-El formato 3 usa la extensión `.nutriasta.zip`, cifra cada entrada con AES-256 y nunca guarda la contraseña. Incluye exactamente las 26 tablas del dataset activo y las fotografías de viabilidad/alimentos como entradas independientes. Las fotografías corporales continúan excluidas.
+El formato 4 usa la extensión `.nutriasta.zip`, cifra cada entrada con AES-256 y nunca guarda la contraseña. Incluye exactamente las 26 tablas del dataset activo, la procedencia `manual` o `label-photo` y las fotografías de viabilidad/alimentos como entradas independientes. No incluye el texto OCR reconocido. Los valores históricos de procedencia se conservan sin reactivar funciones de códigos de barras. Las fotografías corporales continúan excluidas.
 
 Antes de escribir en IndexedDB se verifica fuera de cualquier transacción:
 
