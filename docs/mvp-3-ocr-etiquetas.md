@@ -1,6 +1,6 @@
 # NutrIAsta MVP 3 — OCR local de etiquetas
 
-Estado: **Fase 0 en validación técnica; versión 0.4.0 no desplegada**
+Estado: **candidato local 0.4.0 implementado y validado automáticamente; no desplegado ni aprobado físicamente**
 
 ## Alcance
 
@@ -119,3 +119,103 @@ como garantizados.
 - La etiqueta `mvp-2-approved-0.3.0` no existe actualmente en el repositorio local;
   la revisión final usará como base técnica el commit de release 0.3.0 `b71a1ba` y
   lo señalará, sin crear ni modificar etiquetas.
+
+## Decisiones finales de implementación
+
+- El esquema `nutriasta-main` permanece exactamente en Dexie 6 y conserva las 26
+  tablas. No se necesitan campos, tablas ni índices nuevos.
+- `foods.dataOrigin = "label-photo"` conserva únicamente la procedencia del alta.
+  El texto OCR completo solo vive en memoria durante la revisión.
+- `foodPhotos` reutiliza la fotografía JPEG recodificada, miniatura, dimensiones,
+  tamaño y checksums ya aprobados.
+- El formato 4 conserva las 26 tablas, fotografías y procedencia, pero excluye el
+  texto OCR. Importa formatos 1, 2, 3 y 4 con el flujo de candidato seguro.
+- El campo e índice histórico `barcode` se mantienen dormidos para no destruir
+  datos ni cambiar el esquema. No existe captura, formulario, búsqueda, validación
+  ni presentación de códigos de barras.
+- Tesseract se ejecuta en Web Worker con worker, núcleos y modelo español servidos
+  desde el mismo origen y precacheados. No existe fallback remoto.
+
+## Matriz de trazabilidad
+
+| Requisito | Implementación | Evidencia automática | Pendiente físico |
+|---|---|---|---|
+| Captura trasera o selección | Inputs locales separados, `capture="environment"` para cámara | E2E de selección en Chromium y WebKit | Selector real de Cámara/Fotos/Archivos en iPhone |
+| Giro y recorte | Giro 0/90/180/270 y recorte porcentual por lado | E2E con etiqueta ficticia girada | Comodidad táctil y resultado con una foto real ficticia |
+| Privacidad fotográfica | Canvas local, JPEG nuevo sin metadatos, 2.048 px, 4 MB, miniatura y checksums | E2E sin tráfico externo y pruebas de persistencia/backup | Confirmar permisos y ausencia de subidas en Safari |
+| OCR local y offline | Tesseract.js 7, worker y recursos españoles propios | Chromium/WebKit, privacidad, build y service worker | Tiempo, memoria y apertura offline en el iPhone |
+| Cancelación e interrupción | `AbortController`, terminación del worker y candidato solo en memoria | Cancelación y recarga con cero escrituras | Cancelar desde PWA y forzar cierre |
+| Parser europeo | 100 g, 100 ml, porción, varias columnas, coma/punto, kJ/kcal y macros admitidos | Unitarias de columnas, ausencias, contradicciones, ambigüedades y unidades | Etiquetas ficticias variadas fotografiadas |
+| Revisión obligatoria | Pantalla editable con origen, estado textual, avisos y texto desplegable | E2E de corrección, duplicado y confirmación | VoiceOver, teclado de iOS y zoom de texto |
+| Persistencia atómica | Reutiliza transacción de alimento, porciones y fotografía | Unitarias del repositorio y E2E; WebKit/Windows no guarda Blob | Guardar, cerrar, reiniciar y abrir offline en iPhone |
+| Backup 4 | AES-256, 26 tablas, fotos y procedencia; sin texto OCR | 26 tablas pobladas, checksums y restauración completa | Exportar a “En mi iPhone” y restaurar físicamente |
+| Compatibilidad | Decodificadores 1–4 y datasets temporales | Unitarias de formatos 1, 2, 3 y 4 | Importar un backup 3 real de la versión instalada |
+| Actualización controlada | Sin `skipWaiting` automático; espera foto/OCR/escrituras | Dos builds reales 0.3.0→0.4.0 bajo el mismo origen | Actualizar desde la 0.3.3 instalada |
+| Responsive y accesibilidad | Sistema `$nutriasta-ux-ui`, safe areas y recursos locales | 320/375/390/430/1280/1440, 200 %, foco, contraste, reduced motion y capturas | VoiceOver y Safari físico |
+
+## Prueba física única para iPhone
+
+Usar exclusivamente una etiqueta creada para la prueba y objetos sin datos
+personales. No introducir alimentos ni fotografías reales hasta aprobar toda la
+lista.
+
+1. Antes del futuro despliegue, abrir la 0.3.3 instalada, comprobar los datos
+   ficticios y guardar un backup formato 3 reciente en “En mi iPhone”.
+2. Tras el despliegue autorizado, abrir la PWA sin cerrarla y comprobar que sigue
+   mostrando 0.3.3 y no se recarga sola.
+3. Esperar el aviso de nueva versión. No pulsarlo todavía y confirmar que la app
+   sigue operativa.
+4. Iniciar la preparación de una fotografía ficticia y, mientras aparezca la
+   operación pendiente, pulsar “Actualizar”. Confirmar que la actualización espera.
+5. Cancelar o terminar la preparación y comprobar que solo entonces se activa la
+   actualización consentida.
+6. Confirmar `Versión 0.4.0`, perfil, diario, entrenamientos, peso, inventario,
+   compra, recetas, datasets y fecha del backup anteriores.
+7. Abrir Alimentos y comprobar que aparecen “Fotografiar etiqueta nutricional” e
+   “Introducir alimento manualmente”, sin ninguna función de código de barras.
+8. Abrir Cámara y fotografiar una etiqueta nutricional ficticia con la cámara
+   trasera. Cancelar el selector una vez y comprobar que no se guarda nada.
+9. Repetir desde Fotos o Archivos y comprobar la vista previa.
+10. Girar a izquierda y derecha, ajustar los cuatro recortes y elegir otra imagen.
+    Confirmar que ningún control se sale de la pantalla.
+11. Procesar una foto nítida. Observar texto de progreso y porcentaje, sin que la
+    interfaz quede bloqueada.
+12. Cancelar el OCR durante otra ejecución y comprobar que vuelve a un estado
+    recuperable y no aparece un alimento nuevo.
+13. Iniciar otro OCR, forzar el cierre de la PWA, reabrirla y comprobar que no
+    queda candidato ni alimento parcial.
+14. Procesar una etiqueta vertical y otra inicialmente girada; corregir el giro
+    antes del OCR.
+15. Probar, siempre con material ficticio, perspectiva moderada, reflejo, poca luz
+    y texto pequeño. Anotar el tiempo aproximado y cualquier cierre de Safari.
+16. En “Revisar etiqueta nutricional”, comprobar fotografía, base, columna, valor,
+    unidad, origen y estado textual de cada campo.
+17. Abrir “Mostrar texto reconocido” y verificar que se puede cerrar y que ningún
+    texto sale del dispositivo.
+18. Corregir manualmente todos los campos, probar “Editar fotografía”, “Volver a
+    fotografiar”, “Introducir manualmente” y “Cancelar”.
+19. Crear antes un alimento ficticio con el mismo nombre y confirmar que aparece
+    el aviso de posible duplicado.
+20. Guardar únicamente tras la confirmación final. Cerrar, forzar cierre,
+    reiniciar el iPhone y verificar alimento, valores y fotografía.
+21. Activar modo avión, abrir la PWA, repetir un OCR y un alta manual, cerrar y
+    reabrir todavía offline.
+22. Aumentar el texto de iOS, recorrer el flujo con VoiceOver y confirmar orden de
+    lectura, anuncios de progreso/errores, foco de diálogos y controles táctiles.
+23. Probar en orientación vertical a 320–430 px equivalentes y confirmar que no
+    existe desplazamiento horizontal ni botones fuera del viewport.
+24. Exportar un backup formato 4 cifrado y guardarlo en “En mi iPhone”. Confirmar
+    su fecha y conservarlo.
+25. Modificar el alimento OCR y su fotografía. Restaurar primero con contraseña
+    incorrecta y después preparar correctamente, cancelar, activar, hacer rollback,
+    reactivar y confirmar.
+26. Comprobar que el backup formato 4 recupera las 26 tablas, la fotografía y la
+    procedencia, sin presentar ni necesitar el texto OCR original.
+27. Importar como candidato el backup formato 3 del paso 1 y comprobar que
+    cancelación, activación, rollback, reactivación y confirmación funcionan.
+28. Cerrar, reiniciar, abrir offline y verificar los datos restaurados.
+
+La prueba se detiene si hay tráfico externo, pérdida o modificación silenciosa de
+datos, activación automática del service worker, escritura al cancelar, cierre por
+memoria repetible, ausencia del OCR offline o imposibilidad de conservar a la vez
+el dataset activo y el candidato de restauración.

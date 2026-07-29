@@ -17,7 +17,7 @@ import { APP_VERSION } from '@/storage/schema';
 
 export const FULL_BACKUP_V4_MANIFEST_PATH = 'manifest.json';
 export const FULL_BACKUP_V4_DATA_PATH = 'data.json';
-export const FULL_BACKUP_V4_MINIMUM_APP_VERSION = '0.3.3';
+export const FULL_BACKUP_V4_MINIMUM_APP_VERSION = '0.4.0';
 export const FULL_BACKUP_V4_LIMITS = FULL_BACKUP_V3_LIMITS;
 
 const CURRENT_ORIGINS = ['manual', 'label-photo'] as const;

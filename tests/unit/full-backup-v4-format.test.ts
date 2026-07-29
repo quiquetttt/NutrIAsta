@@ -19,8 +19,8 @@ const manifest: FullBackupManifestV4 = {
   format: 'nutriasta-full-backup',
   formatVersion: 4,
   databaseSchemaVersion: 6,
-  minimumAppVersion: '0.3.3',
-  appVersion: '0.3.3',
+  minimumAppVersion: '0.4.0',
+  appVersion: '0.4.0',
   backupId: 'backup-formato-4-ficticio',
   sourceDatasetId: 'dataset-ficticio',
   exportedAt: '2026-07-29T12:00:00.000Z',
@@ -48,18 +48,18 @@ const emptyData = Object.fromEntries(
 describe('contrato del backup completo formato 4', () => {
   it('conserva las 26 tablas, procedencia OCR y compatibilidad semántica futura', () => {
     expect(FULL_DATA_TABLES_V4).toHaveLength(26);
-    expect(parseFullBackupV4Manifest(JSON.stringify(manifest), '0.3.3').formatVersion).toBe(4);
+    expect(parseFullBackupV4Manifest(JSON.stringify(manifest), '0.4.0').formatVersion).toBe(4);
     expect(parseFullBackupV4Manifest(JSON.stringify(manifest), '1.0.0').ocrProvenance)
       .toMatchObject({ recognizedTextIncluded: false });
-    expect(() => parseFullBackupV4Manifest(JSON.stringify(manifest), '0.3.2'))
-      .toThrow(/necesita NutrIAsta 0.3.3/);
+    expect(() => parseFullBackupV4Manifest(JSON.stringify(manifest), '0.3.3'))
+      .toThrow(/necesita NutrIAsta 0.4.0/);
   });
 
   it('rechaza un contrato que incluya texto OCR completo', () => {
     expect(() => parseFullBackupV4Manifest(JSON.stringify({
       ...manifest,
       ocrProvenance: { ...manifest.ocrProvenance, recognizedTextIncluded: true },
-    }), '0.3.3')).toThrow(/trazabilidad OCR/);
+    }), '0.4.0')).toThrow(/trazabilidad OCR/);
   });
 
   it('acepta procedencia actual e histórica, pero no texto OCR ni orígenes desconocidos', () => {

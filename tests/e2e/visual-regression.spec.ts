@@ -89,6 +89,8 @@ async function addWeight(page: Page, date: string, time: string, value: string) 
   await page.getByLabel('Hora del peso').fill(time);
   await page.getByLabel('Peso registrado (kg)').fill(value);
   await page.getByRole('button', { name: 'Añadir peso' }).click();
+  await expect(page.getByRole('button', { name: `Editar peso ${date} ${time}` })).toBeVisible();
+  await expect(page.getByLabel('Peso registrado (kg)')).toHaveValue('70');
 }
 
 async function stableScreenshot(page: Page, name: string, resetScrollTop = false) {

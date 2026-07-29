@@ -8,7 +8,7 @@ import { MAIN_DATABASE_VERSION } from '../../src/storage/main-schema';
 import { readLegacyState, seedLegacyDatabase } from './legacy-fixture';
 import { openMvpSection } from './mvp-fixture';
 
-test.describe.serial('actualización real 0.2.1 → 0.3.3 bajo el mismo origen', () => {
+test.describe.serial('actualización real 0.3.0 → 0.4.0 bajo el mismo origen', () => {
   let context: BrowserContext;
   let page: Page;
   let server: ChildProcess;
@@ -46,9 +46,11 @@ test.describe.serial('actualización real 0.2.1 → 0.3.3 bajo el mismo origen',
     expect(builds.old).not.toBe(builds.current);
 
     await createProfileInHistoricalBuild(page);
-    await expect(page.getByText(/Versión 0\.2\.1/).first()).toBeVisible();
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    if (!await page.evaluate(() => Boolean(navigator.serviceWorker.controller))) await page.reload();
+    await expect(page.getByRole('banner').getByText(/Versión 0\.3\.0/)).toBeVisible();
     const legacyBefore = await readLegacyState(page);
-    expect(await mainState(page)).toMatchObject({ version: 50, alias: 'Perfil actualización ficticio' });
+    expect(await mainState(page)).toMatchObject({ version: MAIN_DATABASE_VERSION * 10, alias: 'Perfil actualización ficticio' });
     expect(await page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
 
     const switched = await context.request.post(`${origin}/__e2e__/activate-candidate`);
@@ -58,11 +60,11 @@ test.describe.serial('actualización real 0.2.1 → 0.3.3 bajo el mismo origen',
       await registration.update();
     });
     await expect(page.getByText('Nueva versión disponible')).toBeVisible();
-    await expect(page.getByText(/Versión 0\.2\.1/).first()).toBeVisible();
+    await expect(page.getByRole('banner').getByText(/Versión 0\.3\.0/)).toBeVisible();
     await page.waitForTimeout(300);
-    await expect(page.getByText(/Versión 0\.2\.1/).first()).toBeVisible();
+    await expect(page.getByRole('banner').getByText(/Versión 0\.3\.0/)).toBeVisible();
 
-    await page.getByRole('tab', { name: 'Alimentos', exact: true }).click();
+    await openMvpSection(page, 'Alimentos');
     await page.getByRole('button', { name: 'Añadir alimento' }).click();
     await page.getByLabel('Nombre', { exact: true }).fill('Fotografía actualización ficticia');
     await page.getByLabel('Energía (kcal)').fill('100');
@@ -74,10 +76,10 @@ test.describe.serial('actualización real 0.2.1 → 0.3.3 bajo el mismo origen',
     });
     await page.getByRole('button', { name: 'Actualizar ahora' }).click();
     await page.waitForTimeout(300);
-    await expect(page.getByText(/Versión 0\.2\.1/).first()).toBeVisible();
+    await expect(page.getByRole('banner').getByText(/Versión 0\.3\.0/)).toBeVisible();
 
     await page.evaluate(() => (window as unknown as { __releasePhotoProcessing: () => void }).__releasePhotoProcessing());
-    await expect(page.getByRole('banner').getByText(/Versión 0\.3\.3/)).toBeVisible();
+    await expect(page.getByRole('banner').getByText(/Versión 0\.4\.0/)).toBeVisible();
     await openMvpSection(page, 'Perfil y objetivos');
     await expect(page.getByLabel('Alias')).toHaveValue('Perfil actualización ficticio');
     expect(await mainState(page)).toMatchObject({ version: MAIN_DATABASE_VERSION * 10, alias: 'Perfil actualización ficticio' });
@@ -100,7 +102,7 @@ test.describe.serial('actualización real 0.2.1 → 0.3.3 bajo el mismo origen',
     const offlinePage = await context.newPage();
     try {
       await offlinePage.goto('/', { waitUntil: 'domcontentloaded' });
-      await expect(offlinePage.getByRole('banner').getByText(/Versión 0\.3\.3/)).toBeVisible();
+      await expect(offlinePage.getByRole('banner').getByText(/Versión 0\.4\.0/)).toBeVisible();
       await expect(offlinePage.getByText('Offline', { exact: true }).first()).toBeVisible();
       expect(await mainState(offlinePage)).toMatchObject({
         version: MAIN_DATABASE_VERSION * 10,

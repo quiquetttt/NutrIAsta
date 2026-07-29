@@ -1,8 +1,8 @@
-# NutrIAsta — MVP 2 local (versión 0.3.3)
+# NutrIAsta — MVP 3 local (candidato 0.4.0)
 
 NutrIAsta es una PWA personal en español para registrar nutrición, entrenamiento, peso, inventario doméstico y compra. Funciona con IndexedDB mediante Dexie y no tiene cuentas, backend, analítica, telemetría ni sincronización.
 
-> Utiliza exclusivamente datos y fotografías ficticios hasta que el parche 0.3.3 supere su comprobación física en el iPhone. Después, antes de empezar el uso real, conserva un backup completo reciente. La persistencia de Safari no está garantizada.
+> Utiliza exclusivamente datos y fotografías ficticios hasta que la versión 0.4.0 supere su comprobación física en el iPhone. Después, antes de empezar el uso real, conserva un backup completo reciente. La persistencia de Safari no está garantizada.
 
 ## Alcance garantizado
 
@@ -10,6 +10,7 @@ NutrIAsta es una PWA personal en español para registrar nutrición, entrenamien
 - Mifflin–St Jeor, PAL elegido manualmente, mantenimiento y escenarios matemáticos de ±5 % y ±10 %. Son orientación general, no consejo médico.
 - Objetivos manuales versionados de calorías, proteínas, carbohidratos, grasas y agua.
 - Catálogo local de alimentos con introducción manual o fotografía de etiqueta, varias porciones editables, energía declarada o calculada 4/4/9, favoritos, recientes, supermercado y fotografía local sustituible.
+- Alta asistida mediante OCR español completamente local: captura/selección, giro, recorte, progreso cancelable, selección de columna y revisión editable obligatoria. Nunca guarda automáticamente.
 - Diario por fecha con comidas de varios elementos, desayuno, comida, cena y tentempié; unidades base seguras, snapshots nutricionales, notas, agua y entrenamiento mínimo sí/no.
 - Objetivo manual diario de pasos, configurable desde Ajustes con 10.000 como valor inicial, y registro editable del total de cada día desde Hoy. No utiliza sensores.
 - Recetas manuales, planificación futura, copia de comidas/días y conversión de planificado a consumido sin recalcular el histórico.
@@ -27,6 +28,7 @@ Quedan excluidos Open Food Facts, códigos de barras, sugerencia automática de 
 - Node.js `>=22.13.0` (validado con Node 24.14.0).
 - npm y las versiones fijadas en `package-lock.json`.
 - Expo SDK 57, React 19.2.3, React Native 0.86 y React Native Web 0.21.
+- `tesseract.js@7.0.0` y `@tesseract.js-data/spa@1.0.0`, fijados para OCR local en Web Worker con recursos propios. No usan CDN.
 - Chromium y WebKit instalados por Playwright.
 
 Instalación reproducible:
@@ -36,7 +38,7 @@ npm ci
 npx playwright install chromium webkit
 ```
 
-No se añadieron dependencias nuevas durante las fases 1–5. Dexie gestiona IndexedDB y `@zip.js/zip.js` realiza ZIP y AES-256; ambas ya estaban justificadas en la prueba de viabilidad.
+Dexie gestiona IndexedDB y `@zip.js/zip.js` realiza ZIP y AES-256. El MVP 3 añade únicamente Tesseract.js y el modelo español local; no incorpora red, analítica, cámara nativa ni backend.
 
 ## Validación local reproducible
 
@@ -50,16 +52,23 @@ npx expo-doctor
 
 `npm run test:e2e` elimina y reconstruye `dist`, elige un puerto libre y arranca un servidor exclusivo con `reuseExistingServer: false`. No reutiliza el puerto 4173 ni servidores anteriores.
 
-Resultados locales del parche 0.3.3, ejecutados con Node 24.14.0:
+Resultados locales del candidato 0.4.0, ejecutados con Node 24.14.0:
 
 - TypeScript: correcto.
-- Vitest: 26 archivos y 79 pruebas correctas; el backup formato 3 se prueba con las 26 tablas pobladas.
+- Vitest: 27 archivos y 89 pruebas correctas; el backup formato 4 se prueba con las 26 tablas pobladas.
 - Exportación estática, manifiesto, iconos y service worker: correctos.
-- Playwright: 65 pruebas correctas y 5 omisiones justificadas en WebKit para Windows. Incluye regresión visual, navegación adaptable, entrenamiento simplificado, agua y pasos desde Hoy, objetivos persistentes, peso, inventario, backup y una actualización real entre dos builds distintos (`mvp-1-approved-0.2.1` → `0.3.3`) bajo el mismo origen.
-- Expo Doctor: 18/18 comprobaciones correctas.
+- Playwright: 75 pruebas correctas y 5 omisiones justificadas en WebKit para Windows. Incluye OCR local, cancelación, giro, límites, regresión visual, backup y una actualización real entre dos builds distintos (`b71a1ba`, versión 0.3.0 → `0.4.0`) bajo el mismo origen.
+- Expo Doctor: 20/20 comprobaciones correctas.
 - Privacidad: ninguna petición de producción a terceros y ninguna API remota.
 
-Las cinco omisiones son dos reaperturas offline bajo service worker —la apertura general y la comprobación posterior a la actualización real— y tres recorridos que necesitan serializar fotografías `Blob` en IndexedDB: copia de la foto 0.1.1, edición de fotografía de alimento y backup completo. Playwright WebKit en Windows no reproduce esas capacidades de Safari de iPhone de forma fiable. Los mismos recorridos pasan en Chromium y quedan como pruebas físicas obligatorias en Safari/iPhone.
+Los recursos OCR locales ocupan 13.913.220 bytes: modelo español comprimido
+2.100.190 bytes, worker 111.307 bytes y tres variantes de núcleo WebAssembly para
+compatibilidad. El precaché final es de aproximadamente 14,29 MB frente a 2,44 MB
+antes del OCR, un aumento aproximado de 11,85 MB. La prueba aislada tardó
+0,6–0,9 s en el equipo de desarrollo y Chromium informó alrededor de 10 MB de
+memoria JavaScript; tiempo y memoria reales siguen pendientes del iPhone.
+
+Las cinco omisiones son dos reaperturas offline bajo service worker —la apertura general y la comprobación posterior a la actualización real— y tres recorridos que necesitan serializar fotografías `Blob` en IndexedDB: copia de la foto 0.1.1, edición de fotografía de alimento y backup completo. Playwright WebKit en Windows no reproduce esas capacidades de Safari de iPhone de forma fiable. El OCR y su cancelación sí pasan en ambos motores; las cinco omisiones quedan como pruebas físicas obligatorias en Safari/iPhone.
 
 Playwright comprueba estructura accesible, teclado, foco visible, contraste, texto al 200 % y movimiento reducido, pero no sustituye VoiceOver ni Safari real. Lectura y orden con VoiceOver, anuncios de diálogos, captura/selección de fotografías, apertura offline y actualización desde la PWA instalada siguen pendientes de validación física en el iPhone.
 
@@ -92,17 +101,20 @@ La preparación exige espacio adicional de `ceil(payload × 1,5) + 10 MiB`. Escr
 - `Eliminar todos mis datos` exige escribir `ELIMINAR` y aceptar una segunda confirmación. Borra exclusivamente las filas funcionales del dataset activo en las 26 tablas.
 - Esa acción no elimina la base histórica `nutriasta`, el catálogo técnico de datasets, datasets de rollback, backups guardados en Archivos ni la PWA. No se realizan limpiezas silenciosas de recuperación.
 
-La revisión de producción `npm audit --omit=dev` del 29 de julio de 2026 informa 10 avisos moderados, sin vulnerabilidades críticas. Proceden de herramientas de Expo SDK 57 (`@expo/config-plugins`/`xcode`/`uuid`); la única propuesta automática completa de npm requiere `--force` y rebajaría Expo a SDK 46, por lo que es incompatible.
+La revisión de producción `npm audit --omit=dev` del 29 de julio de 2026 informa 10 avisos moderados, sin vulnerabilidades críticas. Proceden de herramientas de Expo SDK 57 (`@expo/config-plugins`/`xcode`/`uuid`); la única propuesta automática completa de npm requiere `--force` y rebajaría Expo a SDK 46, por lo que es incompatible. La auditoría completa añade 7 avisos altos en la cadena de desarrollo de Workbox (`workbox-build`/plugin/EJS/Jake/filelist/minimatch/brace-expansion).
 
 No se ha usado `npm audit fix --force`, no se ha rebajado Expo y `expo-doctor` es correcto. Estas cadenas son herramientas de compilación y configuración, no forman parte del JavaScript funcional que ejecuta la PWA estática en Safari. Quedan documentadas como riesgo pendiente hasta que Expo/Workbox publiquen una corrección compatible.
 
+La matriz completa y la lista física única del MVP 3 están en
+[`docs/mvp-3-ocr-etiquetas.md`](docs/mvp-3-ocr-etiquetas.md).
+
 ## Pruebas físicas obligatorias en Safari/iPhone
 
-Estas pruebas requieren el despliegue HTTPS autorizado del commit exacto del parche 0.3.3 en el mismo origen privado. No debe publicarse ninguna versión adicional sin otra autorización.
+Estas pruebas requieren un futuro despliegue HTTPS autorizado del commit exacto del candidato 0.4.0 en el mismo origen privado. No se ha realizado ese despliegue.
 
 1. Antes de actualizar, guardar un backup completo de los datos ficticios actuales y conservar también el backup 0.1.1.
 2. Abrir la PWA instalada y comprobar que la versión anterior no se actualiza sola; aceptar la actualización solo desde el aviso.
-3. Confirmar `Versión 0.3.3`, los datos ficticios heredados y los valores de almacenamiento.
+3. Confirmar `Versión 0.4.0`, los datos ficticios heredados y los valores de almacenamiento.
 4. Crear un perfil totalmente ficticio, comprobar que se muestran fórmula, entradas, PAL, fecha y `Estimación`, y guardar dos periodos de objetivos. Verificar que copiar mantenimiento pide confirmación.
 5. Configurar los accesos de agua como 300 y 600 ml, recargar y comprobar que sustituyen a 250 y 500 ml; después restaurar los valores que se prefieran para la prueba.
 6. Crear un alimento ficticio por 100 g con dos porciones. Guardar, recargar, editar otro campo y comprobar que ambas porciones siguen; editar una porción y eliminar la otra con confirmación.

@@ -1,7 +1,7 @@
 {
   "name": "nutriasta",
   "main": "expo-router/entry",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "dependencies": {
     "@tesseract.js-data/spa": "1.0.0",
     "@zip.js/zip.js": "^2.8.11",

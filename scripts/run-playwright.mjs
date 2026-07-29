@@ -27,11 +27,11 @@ let updateFixtureRoot;
 let updateEnvironment = {};
 if (needsHistoricalBuild) {
   updateFixtureRoot = await mkdtemp(join(tmpdir(), 'nutriasta-update-e2e-'));
-  const sourceRoot = join(updateFixtureRoot, 'mvp-1-approved');
-  const archivePath = join(updateFixtureRoot, 'mvp-1-approved.tar');
+  const sourceRoot = join(updateFixtureRoot, 'mvp-2-release-0.3.0');
+  const archivePath = join(updateFixtureRoot, 'mvp-2-release-0.3.0.tar');
   await mkdir(sourceRoot);
   try {
-    await run('git', ['archive', '--format=tar', '--output', archivePath, 'mvp-1-approved-0.2.1'], process.cwd());
+    await run('git', ['archive', '--format=tar', '--output', archivePath, 'b71a1ba'], process.cwd());
     await run('tar', ['-xf', archivePath, '-C', sourceRoot], process.cwd());
     await symlink(join(process.cwd(), 'node_modules'), join(sourceRoot, 'node_modules'), 'junction');
     await run(process.execPath, [
@@ -44,7 +44,7 @@ if (needsHistoricalBuild) {
     await run(process.execPath, [join(sourceRoot, 'scripts', 'generate-service-worker.mjs')], sourceRoot);
     await run(process.execPath, [join(sourceRoot, 'scripts', 'verify-dist.mjs')], sourceRoot);
     const oldPackage = JSON.parse(await readFile(join(sourceRoot, 'package.json'), 'utf8'));
-    if (oldPackage.version !== '0.2.1') throw new Error(`La compilación histórica no es 0.2.1: ${oldPackage.version}`);
+    if (oldPackage.version !== '0.3.0') throw new Error(`La compilación histórica no es 0.3.0: ${oldPackage.version}`);
     updateEnvironment = {
       NUTRIASTA_UPDATE_OLD_DIST: join(sourceRoot, 'dist'),
       NUTRIASTA_UPDATE_CURRENT_DIST: join(process.cwd(), 'dist'),
