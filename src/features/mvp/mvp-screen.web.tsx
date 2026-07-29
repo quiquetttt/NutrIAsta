@@ -65,7 +65,7 @@ export function MvpScreen() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [updateWaiting, setUpdateWaiting] = useState(false);
-  const [online, setOnline] = useState(navigator.onLine);
+  const [online, setOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
   const [storage, setStorage] = useState<StorageStatus>(EMPTY_STORAGE);
   const [legacyText, setLegacyText] = useState<string | null>(null);
   const [legacyPhoto, setLegacyPhoto] = useState<Blob | null>(null);

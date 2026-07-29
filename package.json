@@ -3,6 +3,7 @@
   "main": "expo-router/entry",
   "version": "0.3.3",
   "dependencies": {
+    "@tesseract.js-data/spa": "1.0.0",
     "@zip.js/zip.js": "^2.8.11",
     "dexie": "^4.2.1",
     "expo": "~57.0.8",
@@ -14,7 +15,8 @@
     "react-native": "0.86.0",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
-    "react-native-web": "~0.21.0"
+    "react-native-web": "~0.21.0",
+    "tesseract.js": "7.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",
