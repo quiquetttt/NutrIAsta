@@ -11,18 +11,20 @@ import {
 
 export function LabelPhotoCapture({
   busy,
+  initialFile = null,
   onBusyChange,
   onCancel,
   onPrepared,
 }: {
   busy: boolean;
+  initialFile?: File | null;
   onBusyChange: (busy: boolean) => void;
   onCancel: () => void;
   onPrepared: (value: ProcessedFoodLabel) => void;
 }) {
   const cameraInput = useRef<HTMLInputElement>(null);
   const libraryInput = useRef<HTMLInputElement>(null);
-  const [file, setFile] = useState<File | null>(null);
+  const [file, setFile] = useState<File | null>(initialFile);
   const [preview, setPreview] = useState<string | null>(null);
   const [transform, setTransform] = useState<PhotoTransform>(DEFAULT_PHOTO_TRANSFORM);
   const [error, setError] = useState<string | null>(null);
@@ -106,7 +108,7 @@ function CropFields({ value, onChange, disabled }: { value: PhotoTransform; onCh
     ['cropLeft', 'Recortar izquierda (%)'],
   ];
   return (
-    <View style={{ display: 'grid' as never, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' as never, gap: 10 }}>
+    <View style={{ display: 'grid' as never, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))' as never, gap: 10 }}>
       {sides.map(([key, label]) => (
         <label key={key} style={{ display: 'grid', gap: 5, color: palette.ink, fontWeight: 700 }}>
           {label}

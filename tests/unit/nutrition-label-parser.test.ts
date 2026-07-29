@@ -58,6 +58,16 @@ Proteínas 3.0 g`, 88);
     expect(parsed.values.some(({ key }) => !['energyKj', 'energyKcal', 'fatG', 'carbohydratesG', 'proteinG'].includes(key))).toBe(false);
     expect(parsed.values.find(({ key }) => key === 'proteinG')?.status).toBe('uncertain');
   });
+
+  it('marca caracteres OCR ambiguos y unidades incompatibles sin corregirlos en silencio', () => {
+    const ambiguous = parseNutritionLabel('Por 100 g\nGrasas 1O,5 g\nProteínas 7 ml', 90);
+    expect(value(ambiguous, 'per-100-g', 'fatG')).toBe(10.5);
+    expect(ambiguous.values.find(({ key }) => key === 'fatG')?.warnings)
+      .toContain('El OCR contiene caracteres ambiguos O/0, I/1 o S/5.');
+    expect(ambiguous.values.find(({ key }) => key === 'proteinG')?.warnings)
+      .toContain('La unidad ml no coincide con g.');
+    expect(ambiguous.values.filter(({ key }) => key === 'fatG' || key === 'proteinG').every(({ status }) => status === 'uncertain')).toBe(true);
+  });
 });
 
 function value(result: ReturnType<typeof parseNutritionLabel>, columnId: string, key: string) {

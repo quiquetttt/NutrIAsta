@@ -24,11 +24,18 @@ function normalized(value: string) {
 }
 
 function numberTokens(line: string) {
-  return [...line.matchAll(/(?<![\p{L}\d])(-?\d+(?:[.,]\d+)?)(?:\s*)(kcal|kJ|kj|mg|ml|g)?\b/giu)].map((match) => ({
-    raw: match[0].trim(),
-    value: Number(match[1]?.replace(',', '.')),
-    unit: match[2]?.toLocaleLowerCase(),
-  }));
+  return [...line.matchAll(/(?<![\p{L}\d])(-?[\dOIS]+(?:[.,][\dOIS]+)?)(?:\s*)(kcal|kJ|kj|mg|ml|g)?\b/giu)].map((match) => {
+    const numeric = (match[1] ?? '')
+      .replace(/[oO]/g, '0')
+      .replace(/[iI]/g, '1')
+      .replace(/[sS]/g, '5')
+      .replace(',', '.');
+    return {
+      raw: match[0].trim(),
+      value: Number(numeric),
+      unit: match[2]?.toLocaleLowerCase(),
+    };
+  });
 }
 
 function columnsFromText(text: string): NutritionColumn[] {
@@ -78,7 +85,7 @@ export function parseNutritionLabel(recognizedText: string, confidence = 0): Nut
     let tokens = numberTokens(rawLine);
     if (definition.key === 'energyKj') tokens = tokens.filter(({ unit }) => unit === 'kj');
     if (definition.key === 'energyKcal') tokens = tokens.filter(({ unit }) => unit === 'kcal');
-    if (definition.key.endsWith('G')) tokens = tokens.filter(({ unit }) => !unit || unit === 'g' || unit === 'mg');
+    if (definition.key.endsWith('G')) tokens = tokens.filter(({ unit }) => unit !== 'kcal' && unit !== 'kj');
     tokens.slice(0, columns.length).forEach((token, index) => {
       const column = columns[index] ?? columns[0]!;
       const converted = token.unit === 'mg' ? token.value / 1000 : token.value;
