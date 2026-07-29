@@ -1,5 +1,5 @@
 export type FoodBaseUnit = 'g' | 'ml';
-export type FoodDataOrigin = 'manual' | 'label-photo' | 'barcode-manual' | 'barcode-scanned';
+export type FoodDataOrigin = 'manual' | 'label-photo';
 export type FoodEnergySource = 'declared' | 'calculated';
 
 export interface Food {
@@ -49,5 +49,5 @@ export interface FoodPhoto {
   createdAt: string;
 }
 
-export type FoodDraft = Omit<Food, 'datasetId' | 'id' | 'createdAt' | 'updatedAt' | 'lastUsedAt' | 'archived'>;
+export type FoodDraft = Omit<Food, 'datasetId' | 'id' | 'barcode' | 'createdAt' | 'updatedAt' | 'lastUsedAt' | 'archived'>;
 export type FoodPhotoDraft = Omit<FoodPhoto, 'datasetId' | 'id' | 'foodId'>;

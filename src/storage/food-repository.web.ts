@@ -1,5 +1,4 @@
 import type { Food, FoodDraft, FoodPhotoDraft, FoodPortion } from '@/mvp/food-types';
-import { isValidEan, normalizeEan } from '@/mvp/ean';
 import { mainDatabase, type NutrIAstaMainDatabase } from '@/storage/main-database.web';
 import { MAIN_META_KEYS } from '@/storage/main-schema';
 import { trackWrite } from '@/storage/write-tracker';
@@ -24,16 +23,10 @@ export class FoodRepository {
     if (!options.includeArchived) foods = foods.filter((food) => !food.archived);
     if (options.favorites) foods = foods.filter((food) => food.favorite);
     const search = options.search?.trim().toLocaleLowerCase('es-ES');
-    if (search) foods = foods.filter((food) => [food.name, food.brand, food.supermarket, food.barcode ?? ''].some((value) => value.toLocaleLowerCase('es-ES').includes(search)));
+    if (search) foods = foods.filter((food) => [food.name, food.brand, food.supermarket].some((value) => value.toLocaleLowerCase('es-ES').includes(search)));
     return foods.sort((a, b) => options.recent ? (b.lastUsedAt ?? '').localeCompare(a.lastUsedAt ?? '') : a.name.localeCompare(b.name, 'es'));
   }
   async get(id: string) { const datasetId = await this.datasetId(); return this.db.foods.get([datasetId, id]); }
-  async duplicateForBarcode(barcode: string, excludingId?: string) {
-    const normalized = normalizeEan(barcode); if (!normalized) return null;
-    const datasetId = await this.datasetId();
-    const foods = await this.db.foods.where('[datasetId+barcode]').equals([datasetId, normalized]).toArray();
-    return foods.find((food) => food.id !== excludingId) ?? null;
-  }
   async save(draft: FoodDraft, portions: FoodPortionDraft[], photo?: FoodPhotoDraft, id?: string): Promise<Food>;
   async save(draft: FoodDraft, options: FoodSaveOptions, id?: string): Promise<Food>;
   async save(draft: FoodDraft, portionsOrOptions: FoodPortionDraft[] | FoodSaveOptions, photoOrId?: FoodPhotoDraft | string, legacyId?: string) {
@@ -43,13 +36,9 @@ export class FoodRepository {
     const normalizedDraft = draft.energySource === 'calculated' ? { ...draft, energyKcal: macroEnergy(draft.proteinG, draft.carbohydratesG, draft.fatG), energyKj: null } : draft;
     validateFood(normalizedDraft);
     const datasetId = await this.datasetId();
-    const barcode = normalizedDraft.barcode ? normalizeEan(normalizedDraft.barcode) : null;
-    if (barcode && !isValidEan(barcode)) throw new Error('El código debe ser un EAN-13 o EAN-8 válido.');
-    const duplicate = barcode ? await this.duplicateForBarcode(barcode, id) : null;
-    if (duplicate) throw new Error(`Ya existe un alimento con ese código: ${duplicate.name}.`);
     const previous = id ? await this.db.foods.get([datasetId, id]) : undefined;
     const now = new Date().toISOString(); const foodId = id ?? createId('food');
-    const food: Food = { ...normalizedDraft, barcode, datasetId, id: foodId, archived: previous?.archived ?? false, createdAt: previous?.createdAt ?? now, updatedAt: now, lastUsedAt: previous?.lastUsedAt ?? null };
+    const food: Food = { ...normalizedDraft, barcode: previous?.barcode ?? null, datasetId, id: foodId, archived: previous?.archived ?? false, createdAt: previous?.createdAt ?? now, updatedAt: now, lastUsedAt: previous?.lastUsedAt ?? null };
     await trackWrite(() => this.db.transaction('rw', this.db.foods, this.db.foodPortions, this.db.foodPhotos, async () => {
       await this.db.foods.put(food);
       if (options.portions) {

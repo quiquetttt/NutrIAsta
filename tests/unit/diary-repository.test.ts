@@ -30,7 +30,7 @@ async function fixture() {
 }
 
 const gramFood = {
-  name: 'Alimento histórico', brand: '', supermarket: '', barcode: null, baseUnit: 'g' as const,
+  name: 'Alimento histórico', brand: '', supermarket: '', baseUnit: 'g' as const,
   energyKcal: 100, energyKj: null, proteinG: 10, carbohydratesG: 5, fatG: 2,
   energySource: 'declared' as const, dataOrigin: 'manual' as const, notes: '', favorite: false,
 };

@@ -9,7 +9,7 @@ NutrIAsta es una PWA personal en español para registrar nutrición, entrenamien
 - Perfil local con alias, edad adulta, sexo de referencia de la fórmula, altura, peso y actividad declarada.
 - Mifflin–St Jeor, PAL elegido manualmente, mantenimiento y escenarios matemáticos de ±5 % y ±10 %. Son orientación general, no consejo médico.
 - Objetivos manuales versionados de calorías, proteínas, carbohidratos, grasas y agua.
-- Catálogo manual de alimentos con varias porciones editables, energía declarada o calculada 4/4/9, favoritos, recientes, supermercado, fotografía local sustituible y prueba técnica EAN sin red.
+- Catálogo local de alimentos con introducción manual o fotografía de etiqueta, varias porciones editables, energía declarada o calculada 4/4/9, favoritos, recientes, supermercado y fotografía local sustituible.
 - Diario por fecha con comidas de varios elementos, desayuno, comida, cena y tentempié; unidades base seguras, snapshots nutricionales, notas, agua y entrenamiento mínimo sí/no.
 - Objetivo manual diario de pasos, configurable desde Ajustes con 10.000 como valor inicial, y registro editable del total de cada día desde Hoy. No utiliza sensores.
 - Recetas manuales, planificación futura, copia de comidas/días y conversión de planificado a consumido sin recalcular el histórico.
@@ -20,7 +20,7 @@ NutrIAsta es una PWA personal en español para registrar nutrición, entrenamien
 - Importación de backups de formatos 1, 2 y 3. La base `nutriasta` 0.1.1 se mantiene en versión 1 y solo lectura; `nutriasta-main` usa una migración exclusivamente aditiva hasta Dexie 6.
 - PWA instalable, apertura offline y actualización controlada sin `skipWaiting` automático.
 
-Quedan excluidos OCR, Open Food Facts, sugerencia automática de PAL, análisis de fotografías, recomendaciones médicas, nube y cualquier API remota. El lector EAN depende de `BarcodeDetector`: si Safari no lo ofrece, la introducción manual sigue disponible y debe validarse físicamente.
+Quedan excluidos Open Food Facts, códigos de barras, sugerencia automática de PAL, análisis corporal de fotografías, recomendaciones médicas, nube y cualquier API remota. El OCR de etiquetas se ejecuta exclusivamente en el dispositivo y siempre exige revisión y confirmación manual.
 
 ## Entorno y dependencias
 
@@ -108,7 +108,7 @@ Estas pruebas requieren el despliegue HTTPS autorizado del commit exacto del par
 6. Crear un alimento ficticio por 100 g con dos porciones. Guardar, recargar, editar otro campo y comprobar que ambas porciones siguen; editar una porción y eliminar la otra con confirmación.
 7. Añadir una fotografía ficticia sin información personal. Guardar, recargar, sustituirla por otra y eliminarla con confirmación, comprobando que el alimento permanece.
 8. Crear un alimento con energía declarada y otro con energía calculada. Verificar la etiqueta 4/4/9 y el resultado. Crear un alimento por 100 ml y comprobar que el diario nunca ofrece gramos para él ni mililitros para el alimento en gramos.
-9. Introducir un EAN manual y tratar de crear realmente un segundo alimento con el mismo código. Debe rechazarse. Probar `BarcodeDetector` con un código de prueba; si Safari no lo ofrece, registrar la limitación y confirmar que el campo manual funciona.
+9. Fotografiar una etiqueta nutricional ficticia, revisar y corregir todos los valores propuestos antes de guardarlos. Comprobar también la cancelación y la alternativa de introducción completamente manual.
 10. En una misma comida, añadir dos alimentos y una receta mediante una porción guardada y una unidad base. Comprobar el subtotal conjunto, la hora, el estado y la nota.
 11. Editar cantidad y nota, mover un elemento a otra franja y eliminar otro con confirmación. Comprobar alimentos/recetas/comidas recientes, copiar comida y copiar día.
 12. Registrar agua y entrenamiento ficticio. Planificar una fecha futura, verificar que sus totales están separados y convertirla a consumida.

@@ -95,7 +95,7 @@ export function LabelOcrFlow({ onCancel, onManual, onSaved }: {
     try {
       const scale = selectedColumn.basis === 'portion' ? 100 / parseNumber(portionAmount) : 1;
       const draft: FoodDraft = {
-        name: name.trim(), brand: brand.trim(), supermarket: supermarket.trim(), barcode: null,
+        name: name.trim(), brand: brand.trim(), supermarket: supermarket.trim(),
         baseUnit: selectedColumn.basis === 'per-100-ml' ? 'ml' : selectedColumn.basis === 'portion' ? portionUnit : 'g',
         energyKcal: parseNumber(values.energyKcal) * scale,
         energyKj: values.energyKj.trim() ? parseNumber(values.energyKj) * scale : null,

@@ -1,13 +1,13 @@
 import { expect, test } from '@playwright/test';
 import { openMvpSection, openMvpWithProfile } from './mvp-fixture';
 
-test('gestiona varias porciones, energía calculada y un duplicado EAN real', async ({ page }) => {
+test('gestiona varias porciones, energía calculada, favoritos y búsqueda', async ({ page }) => {
   await openMvpWithProfile(page);
   await openMvpSection(page, 'Alimentos');
   await page.getByRole('button', { name: 'Introducir alimento manualmente' }).click();
+  await expect(page.getByText(/EAN|código de barras/i)).toHaveCount(0);
   await page.getByLabel('Nombre', { exact: true }).fill('Alimento E2E ficticio');
   await page.getByLabel('Marca (opcional)').fill('Marca E2E');
-  await page.getByLabel('EAN-13 o EAN-8 (opcional)').fill('8412345678905');
   await page.getByRole('radio', { name: 'Calculada 4/4/9' }).click();
   await page.getByLabel('Proteínas (g)').fill('10');
   await page.getByLabel('Carbohidratos (g)').fill('20');
@@ -41,12 +41,4 @@ test('gestiona varias porciones, energía calculada y un duplicado EAN real', as
   await page.getByLabel('Buscar alimentos').fill('Marca E2E');
   await expect(page.getByText('Alimento E2E ficticio', { exact: true })).toBeVisible();
   await page.getByLabel('Buscar alimentos').fill('');
-
-  await page.getByRole('button', { name: 'Introducir alimento manualmente' }).click();
-  await page.getByLabel('Nombre', { exact: true }).fill('Segundo alimento E2E');
-  await page.getByLabel('EAN-13 o EAN-8 (opcional)').fill('8412345678905');
-  await page.getByLabel('Energía (kcal)').fill('100');
-  await page.getByRole('button', { name: 'Guardar alimento' }).click();
-  await expect(page.getByText(/Ya existe un alimento con ese código/)).toBeVisible();
-  await expect(page.getByText('Segundo alimento E2E', { exact: true })).toHaveCount(0);
 });

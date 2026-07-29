@@ -15,13 +15,13 @@ async function setup() {
   ]);
   const foods = new FoodRepository(database);
   const first = await foods.save({
-    name: 'Arroz ficticio', brand: '', supermarket: '', barcode: null,
+    name: 'Arroz ficticio', brand: '', supermarket: '',
     baseUnit: 'g', energyKcal: 350, energyKj: null, proteinG: 8,
     carbohydratesG: 75, fatG: 2, energySource: 'declared',
     dataOrigin: 'manual', notes: '', favorite: false,
   }, []);
   const second = await foods.save({
-    name: 'Leche ficticia', brand: '', supermarket: '', barcode: null,
+    name: 'Leche ficticia', brand: '', supermarket: '',
     baseUnit: 'ml', energyKcal: 45, energyKj: null, proteinG: 3,
     carbohydratesG: 5, fatG: 2, energySource: 'declared',
     dataOrigin: 'manual', notes: '', favorite: false,
