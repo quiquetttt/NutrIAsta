@@ -19,6 +19,12 @@ test('explica la estimación y no la copia a un objetivo sin confirmación expl�
   await page.getByRole('button', { name: 'Guardar nuevo periodo' }).click();
   await expect(page.getByText(/Objetivo manual vigente: 2100 kcal\/día/)).toBeVisible();
   await expect(page.getByText(/Diferencia frente al mantenimiento orientativo:/)).toBeVisible();
+  await openMvpSection(page, 'Hoy');
+  await expect(page.getByText(/0 \/ 2[.\s]?100 kcal/)).toBeVisible();
+  await page.reload();
+  await openMvpSection(page, 'Hoy');
+  await expect(page.getByText(/0 \/ 2[.\s]?100 kcal/)).toBeVisible();
+  await openMvpSection(page, 'Perfil y objetivos');
 
   await page.getByLabel('Calorías (kcal/día)').fill('1111');
   await page.getByRole('button', { name: 'Usar mantenimiento estimado como borrador' }).click();
@@ -28,6 +34,23 @@ test('explica la estimación y no la copia a un objetivo sin confirmación expl�
   await page.getByRole('button', { name: 'Copiar al formulario' }).click();
   await expect(page.getByLabel('Calorías (kcal/día)')).not.toHaveValue('1111');
   await expect(page.getByText('Periodos guardados: 1. Los anteriores no se sobrescriben.')).toBeVisible();
+});
+
+test('registra desde Hoy los accesos rápidos de agua configurados y conserva el total', async ({ page }) => {
+  await openMvpWithProfile(page);
+  await openMvpSection(page, 'Ajustes y privacidad');
+  await page.getByLabel('Accesos rápidos de agua').fill('300, 600');
+  await page.getByRole('button', { name: 'Guardar accesos rápidos de agua' }).click();
+  await openMvpSection(page, 'Hoy');
+  await expect(page.getByRole('button', { name: '+300 ml' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '+600 ml' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '+250 ml' })).toHaveCount(0);
+  await page.getByRole('button', { name: '+300 ml' }).click();
+  await expect(page.getByText('300 ml de agua añadidos.')).toBeVisible();
+  await expect(page.getByText('300 ml', { exact: true })).toBeVisible();
+  await page.reload();
+  await openMvpSection(page, 'Hoy');
+  await expect(page.getByText('300 ml', { exact: true })).toBeVisible();
 });
 
 test('configura agua y cancela o confirma el borrado sin tocar la base histórica', async ({ page }) => {

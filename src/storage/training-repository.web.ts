@@ -150,6 +150,17 @@ export class TrainingRepository {
     }));
   }
 
+  async deleteCustomType(id: string): Promise<void> {
+    const datasetId = await this.activeDatasetId();
+    await trackWrite(() => this.db.transaction('rw', this.db.metadata, this.db.trainingTypes, async () => {
+      await this.assertActive(datasetId);
+      const value = await this.db.trainingTypes.get([datasetId, id]);
+      if (!value) throw new Error('El tipo de entrenamiento no existe.');
+      if (value.origin !== 'custom') throw new Error('Los tipos iniciales no se pueden eliminar.');
+      await this.db.trainingTypes.delete([datasetId, id]);
+    }));
+  }
+
   async listGoalPeriods(): Promise<TrainingSettings[]> {
     const datasetId = await this.activeDatasetId();
     return this.db.trainingSettings.where('datasetId').equals(datasetId).sortBy('effectiveFromMonday');

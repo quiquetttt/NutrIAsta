@@ -2,7 +2,7 @@
   "expo": {
     "name": "NutrIAsta",
     "slug": "nutriasta",
-    "version": "0.3.1",
+    "version": "0.3.2",
     "orientation": "portrait",
     "icon": "./public/icons/icon-512.png",
     "scheme": "nutriasta",

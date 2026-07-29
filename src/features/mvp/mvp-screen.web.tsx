@@ -162,7 +162,6 @@ export function MvpScreen() {
             onOpenDiary={() => { setDiaryView('diary'); setTab('diary'); }}
             onOpenTraining={() => setTab('training')}
             onOpenInventory={() => setTab('inventory')}
-            onOpenWeight={() => { setProfileView('weight'); setTab('profile'); }}
             onOpenSettings={() => { setProfileView('settings'); setTab('profile'); }}
           />
         ) : null}

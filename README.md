@@ -1,8 +1,8 @@
-# NutrIAsta — MVP 2 local (versión 0.3.0)
+# NutrIAsta — MVP 2 local (versión 0.3.2)
 
 NutrIAsta es una PWA personal en español para registrar nutrición, entrenamiento, peso, inventario doméstico y compra. Funciona con IndexedDB mediante Dexie y no tiene cuentas, backend, analítica, telemetría ni sincronización.
 
-> Utiliza exclusivamente datos y fotografías ficticios hasta que la versión 0.3.0 supere su prueba física completa en el iPhone. La persistencia de Safari no está garantizada; conserva backups locales recientes.
+> Utiliza exclusivamente datos y fotografías ficticios hasta que el parche 0.3.2 supere su comprobación física en el iPhone. Después, antes de empezar el uso real, conserva un backup completo reciente. La persistencia de Safari no está garantizada.
 
 ## Alcance garantizado
 
@@ -12,7 +12,7 @@ NutrIAsta es una PWA personal en español para registrar nutrición, entrenamien
 - Catálogo manual de alimentos con varias porciones editables, energía declarada o calculada 4/4/9, favoritos, recientes, supermercado, fotografía local sustituible y prueba técnica EAN sin red.
 - Diario por fecha con comidas de varios elementos, desayuno, comida, cena y tentempié; unidades base seguras, snapshots nutricionales, notas, agua y entrenamiento mínimo sí/no.
 - Recetas manuales, planificación futura, copia de comidas/días y conversión de planificado a consumido sin recalcular el histórico.
-- Calendario mensual, objetivos semanales efectivos desde un lunes, sesiones, ejercicios, series, cargas, copia e historial.
+- Calendario mensual, objetivos semanales efectivos desde un lunes, sesiones simples con tipos y notas, copia e historial desplegable. La interfaz no incluye ejercicios, series, cargas ni ejercicios reutilizables.
 - Historial y gráfica neutral de peso, sin fotografías corporales, análisis ni diagnóstico.
 - Inventario canónico en gramos o mililitros, movimientos inmutables, lista de compra, completar/deshacer y disponibilidad de recetas. Nutrición e inventario se actualizan atómicamente.
 - Backup completo formato 3 de las 26 tablas, ZIP cifrado con AES-256, y restauración mediante dataset temporal, verificación y cambio atómico del puntero activo.
@@ -49,13 +49,13 @@ npx expo-doctor
 
 `npm run test:e2e` elimina y reconstruye `dist`, elige un puerto libre y arranca un servidor exclusivo con `reuseExistingServer: false`. No reutiliza el puerto 4173 ni servidores anteriores.
 
-Resultados finales locales del 27 de julio de 2026, reproducidos en dos rondas completas con Node 24.14.0:
+Resultados locales del parche 0.3.2, ejecutados con Node 24.14.0:
 
 - TypeScript: correcto.
-- Vitest: 26 archivos y 78 pruebas correctas; el backup formato 3 se prueba con las 26 tablas pobladas.
+- Vitest: 26 archivos y 79 pruebas correctas; el backup formato 3 se prueba con las 26 tablas pobladas.
 - Exportación estática, manifiesto, iconos y service worker: correctos.
-- Playwright: 30 pruebas correctas en Chromium; 25 correctas y 5 omisiones justificadas en WebKit para Windows. Incluye regresión visual, navegación adaptable, entrenamiento, peso, inventario, backup y una actualización real entre dos builds distintos (`mvp-1-approved-0.2.1` → `0.3.0`) bajo el mismo origen.
-- Expo Doctor: 20/20 comprobaciones correctas.
+- Playwright: 63 pruebas correctas y 5 omisiones justificadas en WebKit para Windows. Incluye regresión visual, navegación adaptable, entrenamiento simplificado, agua desde Hoy, objetivos persistentes, peso, inventario, backup y una actualización real entre dos builds distintos (`mvp-1-approved-0.2.1` → `0.3.2`) bajo el mismo origen.
+- Expo Doctor: 18/18 comprobaciones correctas.
 - Privacidad: ninguna petición de producción a terceros y ninguna API remota.
 
 Las cinco omisiones son dos reaperturas offline bajo service worker —la apertura general y la comprobación posterior a la actualización real— y tres recorridos que necesitan serializar fotografías `Blob` en IndexedDB: copia de la foto 0.1.1, edición de fotografía de alimento y backup completo. Playwright WebKit en Windows no reproduce esas capacidades de Safari de iPhone de forma fiable. Los mismos recorridos pasan en Chromium y quedan como pruebas físicas obligatorias en Safari/iPhone.
@@ -91,17 +91,17 @@ La preparación exige espacio adicional de `ceil(payload × 1,5) + 10 MiB`. Escr
 - `Eliminar todos mis datos` exige escribir `ELIMINAR` y aceptar una segunda confirmación. Borra exclusivamente las filas funcionales del dataset activo en las 26 tablas.
 - Esa acción no elimina la base histórica `nutriasta`, el catálogo técnico de datasets, datasets de rollback, backups guardados en Archivos ni la PWA. No se realizan limpiezas silenciosas de recuperación.
 
-La revisión de `npm audit` del 26 de julio de 2026 informa 17 avisos sin vulnerabilidades críticas: 7 altos y 10 moderados. Se actualizó de forma compatible `brace-expansion` 5.0.7 → 5.0.8 en el árbol de Expo. Permanece otra copia antigua dentro de la cadena de compilación `workbox-build` → plugin Rollup → EJS/Jake/Filelist/Minimatch, para la que la última versión directa compatible de Workbox todavía no ofrece una resolución limpia. Los avisos moderados proceden principalmente de herramientas de Expo SDK 57 (`@expo/config-plugins`/`xcode`/`uuid`); la propuesta automática de npm rebajaría Expo a SDK 46 y es incompatible.
+La revisión de producción `npm audit --omit=dev` del 29 de julio de 2026 informa 10 avisos moderados, sin vulnerabilidades críticas. Proceden de herramientas de Expo SDK 57 (`@expo/config-plugins`/`xcode`/`uuid`); la única propuesta automática completa de npm requiere `--force` y rebajaría Expo a SDK 46, por lo que es incompatible.
 
 No se ha usado `npm audit fix --force`, no se ha rebajado Expo y `expo-doctor` es correcto. Estas cadenas son herramientas de compilación y configuración, no forman parte del JavaScript funcional que ejecuta la PWA estática en Safari. Quedan documentadas como riesgo pendiente hasta que Expo/Workbox publiquen una corrección compatible.
 
 ## Pruebas físicas obligatorias en Safari/iPhone
 
-Estas pruebas requieren un despliegue HTTPS autorizado por separado en el mismo origen. No hay ningún despliegue autorizado por este commit.
+Estas pruebas requieren el despliegue HTTPS autorizado del commit exacto del parche 0.3.2 en el mismo origen privado. No debe publicarse ninguna versión adicional sin otra autorización.
 
 1. Antes de actualizar, guardar un backup completo de los datos ficticios actuales y conservar también el backup 0.1.1.
 2. Abrir la PWA instalada y comprobar que la versión anterior no se actualiza sola; aceptar la actualización solo desde el aviso.
-3. Confirmar `Versión 0.3.0`, los datos ficticios heredados y los valores de almacenamiento.
+3. Confirmar `Versión 0.3.2`, los datos ficticios heredados y los valores de almacenamiento.
 4. Crear un perfil totalmente ficticio, comprobar que se muestran fórmula, entradas, PAL, fecha y `Estimación`, y guardar dos periodos de objetivos. Verificar que copiar mantenimiento pide confirmación.
 5. Configurar los accesos de agua como 300 y 600 ml, recargar y comprobar que sustituyen a 250 y 500 ml; después restaurar los valores que se prefieran para la prueba.
 6. Crear un alimento ficticio por 100 g con dos porciones. Guardar, recargar, editar otro campo y comprobar que ambas porciones siguen; editar una porción y eliminar la otra con confirmación.
@@ -113,7 +113,7 @@ Estas pruebas requieren un despliegue HTTPS autorizado por separado en el mismo 
 12. Registrar agua y entrenamiento ficticio. Planificar una fecha futura, verificar que sus totales están separados y convertirla a consumida.
 13. Editar después el alimento, receta y objetivo. Volver al día histórico y confirmar que sus snapshots no cambian. Cerrar, forzar cierre, reiniciar el iPhone y repetir la lectura en modo avión.
     - Abrir `Entrenar`, recorrer meses anterior/siguiente, cambiar el objetivo para la semana actual y siguiente y confirmar que una semana pasada no se reinterpreta.
-    - Planificar, completar, cancelar y copiar sesiones ficticias; añadir ejercicios y series opcionales y comprobar el resumen semanal.
+    - Planificar, completar, cancelar y copiar sesiones ficticias; comprobar tipos, notas, resumen semanal, eliminación de un tipo personalizado e historial desplegable.
     - Añadir, editar y eliminar pesos ficticios; comprobar gráfica y alternativa textual sin que cambie silenciosamente el peso del perfil.
     - Añadir inventario en g y ml, consumir con saldo suficiente, agotamiento e insuficiencia; comprobar diferencias, edición por delta, reversión al planificar y eliminación.
     - Completar una compra con equivalencias explícitas, deshacerla y comprobar que se bloquea sin cambios parciales si parte ya se consumió.

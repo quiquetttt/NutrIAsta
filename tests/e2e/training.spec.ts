@@ -39,32 +39,16 @@ test('planifica, completa, copia y resume sesiones sin reinterpretar semanas ant
   await expect(page.getByText('Objetivo: 1 de 5')).toBeVisible();
   await expect(page.getByText('Realizadas: 1')).toBeVisible();
   await expect(page.getByText('Planificadas: 0')).toBeVisible();
-  await expect(page.getByText('Canceladas: 0')).toBeVisible();
+  await expect(page.getByText(/Canceladas:/)).toHaveCount(0);
   await expect(page.getByRole('gridcell', { name: new RegExp(`${localToday}: Completada; tipos: Pecho, Tríceps`) })).toBeVisible();
-
-  await page.getByRole('button', { name: 'Ejercicios y series de Pecho y tríceps ficticio' }).click();
-  await page.getByLabel('Nombre del ejercicio').fill('Press ficticio');
-  await page.getByRole('button', { name: 'Pecho', exact: true }).last().click();
-  await page.getByLabel('Nota del catálogo').fill('Nota de catálogo ficticia');
-  await page.getByRole('button', { name: 'Crear ejercicio del catálogo' }).click();
-  await page.getByLabel('Nota para este ejercicio en la sesión').fill('Instantánea ficticia');
-  await page.getByRole('button', { name: 'Añadir ejercicio a la sesión' }).click();
-  await page.getByLabel('Repeticiones planificadas').fill('10');
-  await page.getByLabel('Carga planificada (kg)').fill('20');
-  await page.getByRole('button', { name: 'Añadir serie a Press ficticio' }).click();
-  await page.getByRole('button', { name: 'Editar serie 1 de Press ficticio' }).click();
-  await page.getByLabel('Repeticiones realizadas').fill('9');
-  await page.getByLabel('Carga realizada (kg)').fill('22.5');
-  await page.getByLabel('Serie realizada').check();
-  await page.getByRole('button', { name: 'Guardar cambios de serie' }).click();
-  await expect(page.getByText(/Plan: 10 rep \/ 20 kg · Real: 9 rep \/ 22.5 kg/)).toBeVisible();
-  await page.getByRole('button', { name: 'Cerrar ejercicios y series' }).click();
+  await expect(page.getByRole('button', { name: /Ejercicios y series/ })).toHaveCount(0);
+  await expect(page.getByText('Ejercicios reutilizables')).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Copiar sesión' }).click();
   await page.getByLabel('Nueva fecha de la copia (AAAA-MM-DD)').fill(tomorrow);
   await page.getByRole('button', { name: 'Crear copia independiente' }).click();
   await expect(page.getByText('Sesión copiada como planificada.')).toBeVisible();
-  await expect(page.getByText('Pecho y tríceps ficticio', { exact: true })).toHaveCount(3);
+  await expect(page.getByRole('gridcell', { name: new RegExp(`${tomorrow}: Planificada; tipos: Pecho, Tríceps`) })).toBeVisible();
 
   await page.getByLabel('Nuevo tipo personalizado').fill('Movilidad ficticia');
   await page.getByRole('button', { name: 'Añadir tipo' }).click();
@@ -74,9 +58,15 @@ test('planifica, completa, copia y resume sesiones sin reinterpretar semanas ant
   await page.getByRole('button', { name: 'Guardar nombre del tipo' }).click();
   await page.getByRole('button', { name: 'Archivar tipo Movilidad renombrada' }).click();
   await expect(page.getByText('Tipo archivado.')).toBeVisible();
-  await page.getByRole('button', { name: 'Añadir sesión' }).click();
-  await expect(page.getByRole('button', { name: 'Movilidad renombrada' })).toHaveCount(1);
+  await page.getByText('Mostrar tipos personalizados archivados').click();
+  await page.getByRole('button', { name: 'Eliminar tipo Movilidad renombrada' }).click();
+  await expect(page.getByRole('heading', { name: 'Eliminar tipo de entrenamiento' })).toBeVisible();
+  await page.getByRole('button', { name: 'Eliminar tipo personalizado' }).click();
+  await expect(page.getByText('Tipo personalizado eliminado.')).toBeVisible();
+  await expect(page.getByText('Movilidad renombrada', { exact: true })).toHaveCount(0);
 
+  await expect(page.getByLabel('Buscar por título, nota o tipo')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Historial de sesiones' }).click();
   await page.getByLabel('Buscar por título, nota o tipo').fill('tríceps');
   await expect(page.getByText('2 resultado(s). Los nombres son instantáneas históricas.')).toBeVisible();
   await page.getByLabel('Desde (AAAA-MM-DD)').fill(tomorrow);

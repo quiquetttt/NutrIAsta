@@ -19,7 +19,6 @@ import {
   type TrainingSessionDraft,
   type WeeklyTrainingSummary,
 } from '@/storage/training-repository.web';
-import { SessionDetails } from '@/features/training/session-details.web';
 
 const TODAY = madridToday();
 const EMPTY_DRAFT = (): TrainingSessionDraft => ({
@@ -45,6 +44,7 @@ export function TrainingScreen() {
   const [customType, setCustomType] = useState('');
   const [editingTypeId, setEditingTypeId] = useState('');
   const [showArchivedTypes, setShowArchivedTypes] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [historyQuery, setHistoryQuery] = useState('');
   const [historyFrom, setHistoryFrom] = useState('');
   const [historyTo, setHistoryTo] = useState('');
@@ -53,7 +53,7 @@ export function TrainingScreen() {
   const [copySessionId, setCopySessionId] = useState('');
   const [copyDate, setCopyDate] = useState(TODAY);
   const [editing, setEditing] = useState(false);
-  const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
+  const [deleteType, setDeleteType] = useState<TrainingType | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -155,11 +155,9 @@ export function TrainingScreen() {
       {error ? <Notice text={error} danger /> : message ? <Notice text={message} /> : null}
       <Card style={{ backgroundColor: palette.navy, borderColor: palette.navy }}>
         <SectionTitle eyebrow="SEMANA ACTUAL"><Text style={{ color: '#fff' }}>Objetivo: {summary.completed} de {summary.goal}</Text></SectionTitle>
-        <Text selectable style={{ color: '#d7e5ee' }}>{summary.monday} a {summary.sunday} · cada sesión completada cuenta una vez.</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           <Text selectable style={summaryMetric}>Realizadas: {summary.completed}</Text>
           <Text selectable style={summaryMetric}>Planificadas: {summary.planned}</Text>
-          <Text selectable style={summaryMetric}>Canceladas: {summary.cancelled}</Text>
           <Text selectable style={summaryMetric}>{summary.percentage}%</Text>
         </View>
         <View accessibilityLabel={`${completion} por ciento del objetivo semanal`} style={{ height: 10, overflow: 'hidden', backgroundColor: '#29435c', borderRadius: 999 }}>
@@ -260,7 +258,6 @@ export function TrainingScreen() {
             {session.note ? <Text selectable style={{ color: palette.ink }}>{session.note}</Text> : null}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               <ActionButton label="Editar sesión" tone="secondary" onPress={() => editSession(session)} />
-              <ActionButton label={`Ejercicios y series de ${session.title || 'la sesión'}`} tone="secondary" onPress={() => setDetailSessionId(session.id)} />
               {session.status !== 'completed' ? <ActionButton label="Marcar completada" onPress={() => void run('Sesión completada.', () => trainingRepository.changeStatus(session.id, 'completed'))} /> : null}
               {session.status === 'planned' ? <ActionButton label="Cancelar sesión" tone="secondary" onPress={() => void run('Sesión cancelada.', () => trainingRepository.changeStatus(session.id, 'cancelled'))} /> : null}
               <ActionButton label="Copiar sesión" tone="secondary" onPress={() => {
@@ -275,8 +272,6 @@ export function TrainingScreen() {
           setEditing((value) => !value);
         }} />
       </Card>
-
-      {detailSessionId ? <SessionDetails sessionId={detailSessionId} onClose={() => setDetailSessionId(null)} /> : null}
 
       {editing ? (
         <Card>
@@ -310,7 +305,7 @@ export function TrainingScreen() {
 
       <Card>
         <SectionTitle eyebrow="PERSONALIZACIÓN">Tipos de entrenamiento</SectionTitle>
-        <Text selectable style={{ color: palette.muted }}>Los nueve tipos iniciales se guardan localmente. Puedes añadir tipos propios; archivar no cambia sesiones anteriores.</Text>
+        <Text selectable style={{ color: palette.muted }}>Los nueve tipos iniciales se guardan localmente. Puedes añadir tipos propios, por ejemplo movilidad, carrera suave o circuito en casa. Renombrar, archivar o eliminar un tipo no cambia el nombre guardado en sesiones anteriores.</Text>
         <Field label={editingTypeId ? 'Renombrar tipo personalizado' : 'Nuevo tipo personalizado'} value={customType} onChange={setCustomType} />
         <ActionButton label={editingTypeId ? 'Guardar nombre del tipo' : 'Añadir tipo'} tone="secondary" onPress={() => void run(editingTypeId ? 'Tipo personalizado renombrado.' : 'Tipo personalizado añadido.', async () => {
           if (editingTypeId) await trainingRepository.renameCustomType(editingTypeId, customType);
@@ -333,32 +328,47 @@ export function TrainingScreen() {
                 tone="secondary"
                 onPress={() => void run(type.archived ? 'Tipo restaurado.' : 'Tipo archivado.', () => trainingRepository.setCustomTypeArchived(type.id, !type.archived))}
               />
+              <ActionButton
+                label={`Eliminar tipo ${type.name}`}
+                tone="danger"
+                onPress={() => setDeleteType(type)}
+              />
             </View>
           </View>
         ))}
       </Card>
 
       <Card>
-        <SectionTitle eyebrow="HISTORIAL">Buscar sesiones</SectionTitle>
-        <Field label="Buscar por título, nota o tipo" value={historyQuery} onChange={setHistoryQuery} />
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-          <View style={{ flexGrow: 1, minWidth: 150 }}><Field label="Desde (AAAA-MM-DD)" value={historyFrom} onChange={setHistoryFrom} /></View>
-          <View style={{ flexGrow: 1, minWidth: 150 }}><Field label="Hasta (AAAA-MM-DD)" value={historyTo} onChange={setHistoryTo} /></View>
-        </View>
-        <View style={{ gap: 8 }}>
-          <Text selectable style={{ color: palette.ink, fontWeight: '800' }}>Filtrar por tipo</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            <ChoiceButton label="Todos" selected={!historyTypeId} onPress={() => setHistoryTypeId('')} />
-            {types.map((type) => <ChoiceButton key={type.id} label={type.name} selected={historyTypeId === type.id} onPress={() => setHistoryTypeId(type.id)} />)}
+        <ActionButton
+          accessibilityLabel={historyOpen ? 'Ocultar historial de sesiones' : 'Historial de sesiones'}
+          label={historyOpen ? 'Ocultar historial de sesiones' : 'Historial de sesiones'}
+          tone="secondary"
+          onPress={() => setHistoryOpen((value) => !value)}
+        />
+        {historyOpen ? (
+          <View style={{ gap: 14 }}>
+            <SectionTitle eyebrow="HISTORIAL">Buscar sesiones</SectionTitle>
+            <Field label="Buscar por título, nota o tipo" value={historyQuery} onChange={setHistoryQuery} />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+              <View style={{ flexGrow: 1, minWidth: 150 }}><Field label="Desde (AAAA-MM-DD)" value={historyFrom} onChange={setHistoryFrom} /></View>
+              <View style={{ flexGrow: 1, minWidth: 150 }}><Field label="Hasta (AAAA-MM-DD)" value={historyTo} onChange={setHistoryTo} /></View>
+            </View>
+            <View style={{ gap: 8 }}>
+              <Text selectable style={{ color: palette.ink, fontWeight: '800' }}>Filtrar por tipo</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                <ChoiceButton label="Todos" selected={!historyTypeId} onPress={() => setHistoryTypeId('')} />
+                {types.map((type) => <ChoiceButton key={type.id} label={type.name} selected={historyTypeId === type.id} onPress={() => setHistoryTypeId(type.id)} />)}
+              </View>
+            </View>
+            <Text selectable style={{ color: palette.muted }}>{filteredHistory.length} resultado(s). Los nombres son instantáneas históricas.</Text>
+            {filteredHistory.length === 0 ? <Text selectable style={{ color: palette.muted }}>No hay sesiones que coincidan.</Text> : filteredHistory.slice(0, 50).map((session) => (
+              <button className="na-history-row" key={session.id} onClick={() => editSession(session)} type="button">
+                <span><strong>{session.localDate}</strong><small>{session.title || session.trainingTypes.map(({ nameSnapshot }) => nameSnapshot).join(' + ')}</small></span>
+                <StatusLabel status={session.status} />
+              </button>
+            ))}
           </View>
-        </View>
-        <Text selectable style={{ color: palette.muted }}>{filteredHistory.length} resultado(s). Los nombres son instantáneas históricas.</Text>
-        {filteredHistory.length === 0 ? <Text selectable style={{ color: palette.muted }}>No hay sesiones que coincidan.</Text> : filteredHistory.slice(0, 50).map((session) => (
-          <button className="na-history-row" key={session.id} onClick={() => editSession(session)} type="button">
-            <span><strong>{session.localDate}</strong><small>{session.title || session.trainingTypes.map(({ nameSnapshot }) => nameSnapshot).join(' + ')}</small></span>
-            <StatusLabel status={session.status} />
-          </button>
-        ))}
+        ) : null}
       </Card>
 
       <AccessibleDialog
@@ -379,7 +389,7 @@ export function TrainingScreen() {
       <AccessibleDialog
         confirmDisabled={!copyDate}
         confirmLabel="Crear copia independiente"
-        description="La copia conservará las instantáneas de tipos y ejercicios, quedará planificada y no compartirá series con la sesión original."
+        description="La copia conservará la instantánea de los tipos, quedará planificada y será independiente de la sesión original."
         onCancel={() => setCopySessionId('')}
         onConfirm={() => {
           const sessionId = copySessionId;
@@ -393,6 +403,31 @@ export function TrainingScreen() {
       >
         <Field label="Nueva fecha de la copia (AAAA-MM-DD)" value={copyDate} onChange={setCopyDate} />
       </AccessibleDialog>
+      <AccessibleDialog
+        confirmLabel="Eliminar tipo personalizado"
+        danger
+        description={deleteType ? `${deleteType.name} dejará de aparecer para nuevas sesiones. Las sesiones anteriores conservarán el nombre que guardaron y no se eliminarán.` : ''}
+        onCancel={() => setDeleteType(null)}
+        onConfirm={() => {
+          if (!deleteType) return;
+          const typeId = deleteType.id;
+          void run('Tipo personalizado eliminado.', async () => {
+            await trainingRepository.deleteCustomType(typeId);
+            setDraft((current) => ({
+              ...current,
+              trainingTypeIds: current.trainingTypeIds.filter((id) => id !== typeId),
+            }));
+            if (historyTypeId === typeId) setHistoryTypeId('');
+            if (editingTypeId === typeId) {
+              setEditingTypeId('');
+              setCustomType('');
+            }
+            setDeleteType(null);
+          });
+        }}
+        open={Boolean(deleteType)}
+        title="Eliminar tipo de entrenamiento"
+      />
     </>
   );
 }

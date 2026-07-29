@@ -148,4 +148,24 @@ describe('repositorio de entrenamientos', () => {
     expect((await repository.listHistory({ query: 'única', from: '2026-07-20', to: '2026-07-25', trainingTypeIds: [custom.id] }))[0]?.id).toBe(session.id);
     expect((await repository.listHistory())[0]?.trainingTypes[0]?.nameSnapshot).toBe('Movilidad ficticia');
   });
+
+  it('elimina solo tipos personalizados y conserva las instantáneas históricas', async () => {
+    const repository = await setup();
+    const initialType = (await repository.listTypes())[0]!;
+    const custom = await repository.addCustomType('Circuito ficticio');
+    const session = await repository.saveSession({
+      status: 'completed',
+      localDate: '2026-07-22',
+      title: 'Sesión con tipo eliminable',
+      note: '',
+      trainingTypeIds: [custom.id],
+    });
+
+    await repository.deleteCustomType(custom.id);
+
+    expect((await repository.listTypes(true)).some(({ id }) => id === custom.id)).toBe(false);
+    expect((await repository.listHistory()).find(({ id }) => id === session.id)?.trainingTypes)
+      .toEqual([{ trainingTypeId: custom.id, nameSnapshot: 'Circuito ficticio' }]);
+    await expect(repository.deleteCustomType(initialType.id)).rejects.toThrow(/iniciales no se pueden eliminar/);
+  });
 });
