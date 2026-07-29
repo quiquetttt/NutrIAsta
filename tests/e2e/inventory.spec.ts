@@ -4,7 +4,7 @@ import { openMvpSection, openMvpWithProfile } from './mvp-fixture';
 test('mantiene inventario, agotamiento, compra y movimientos en una operación trazable', async ({ page }) => {
   await openMvpWithProfile(page);
   await openMvpSection(page, 'Alimentos');
-  await page.getByRole('button', { name: 'Añadir alimento' }).click();
+  await page.getByRole('button', { name: 'Introducir alimento manualmente' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Inventario ficticio');
   await page.getByLabel('Energía (kcal)').fill('100');
   await page.getByRole('button', { name: 'Guardar alimento' }).click();
@@ -37,7 +37,7 @@ test('mantiene inventario, agotamiento, compra y movimientos en una operación t
 test('cancelar la revisión de consumo no escribe nutrición, inventario, decisiones ni compra', async ({ page }) => {
   await openMvpWithProfile(page);
   await openMvpSection(page, 'Alimentos');
-  await page.getByRole('button', { name: 'Añadir alimento' }).click();
+  await page.getByRole('button', { name: 'Introducir alimento manualmente' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Cancelación ficticia');
   await page.getByLabel('Energía (kcal)').fill('100');
   await page.getByRole('button', { name: 'Guardar alimento' }).click();

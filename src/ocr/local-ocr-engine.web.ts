@@ -14,8 +14,11 @@ export class LocalNutritionOcr {
       if (blob.size < 1 || blob.size > 4 * 1024 * 1024 || blob.type !== 'image/jpeg') throw new Error('La fotografía preparada no es válida para OCR.');
       if (signal?.aborted) throw new DOMException('Operación cancelada.', 'AbortError');
       let cancelled = false;
+      let rejectCancellation: ((reason: DOMException) => void) | null = null;
+      const cancellation = new Promise<never>((_, reject) => { rejectCancellation = reject; });
       const abort = () => {
         cancelled = true;
+        rejectCancellation?.(new DOMException('Operación cancelada.', 'AbortError'));
         if (this.worker) void this.worker.terminate();
       };
       signal?.addEventListener('abort', abort, { once: true });
@@ -36,7 +39,8 @@ export class LocalNutritionOcr {
           },
         });
         if (cancelled || signal?.aborted) throw new DOMException('Operación cancelada.', 'AbortError');
-        const result = await this.worker.recognize(blob);
+        const recognition = this.worker.recognize(blob);
+        const result = signal ? await Promise.race([recognition, cancellation]) : await recognition;
         if (cancelled || signal?.aborted) throw new DOMException('Operación cancelada.', 'AbortError');
         return parseNutritionLabel(result.data.text, result.data.confidence);
       } catch (error) {

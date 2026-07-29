@@ -61,7 +61,7 @@ test('la interfaz no ofrece g para alimentos en ml ni ml para alimentos en g', a
   await openMvpWithProfile(page);
   await openMvpSection(page, 'Alimentos');
   await createFood(page, 'Sólido ficticio', 100);
-  await page.getByRole('button', { name: 'Añadir alimento' }).click();
+  await page.getByRole('button', { name: 'Introducir alimento manualmente' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Bebida ficticia');
   await page.getByRole('radio', { name: 'Por 100 ml' }).click();
   await page.getByLabel('Energía (kcal)').fill('40');
@@ -78,7 +78,7 @@ test('la interfaz no ofrece g para alimentos en ml ni ml para alimentos en g', a
 });
 
 async function createFood(page: import('@playwright/test').Page, name: string, energy: number, portionName?: string, portionAmount?: number) {
-  await page.getByRole('button', { name: 'Añadir alimento' }).click();
+  await page.getByRole('button', { name: 'Introducir alimento manualmente' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill(name);
   await page.getByLabel('Energía (kcal)').fill(String(energy));
   if (portionName && portionAmount) {

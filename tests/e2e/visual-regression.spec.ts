@@ -33,7 +33,7 @@ test('mantiene los estados visuales aprobados en móvil y escritorio', async ({ 
   await stableScreenshot(page, '02-calendario-390.png');
 
   await openMvpSection(page, 'Alimentos');
-  await page.getByRole('button', { name: 'Añadir alimento' }).click();
+  await page.getByRole('button', { name: 'Introducir alimento manualmente' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Carne ficticia visual');
   await page.getByLabel('Energía (kcal)').fill('120');
   await page.getByRole('button', { name: 'Guardar alimento' }).click();

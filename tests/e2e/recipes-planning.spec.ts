@@ -4,7 +4,7 @@ import { openMvpSection, openMvpWithProfile } from './mvp-fixture';
 test('crea una receta, la planifica y conserva su snapshot al consumirla', async ({ page }) => {
   await openMvpWithProfile(page);
   await openMvpSection(page, 'Alimentos');
-  await page.getByRole('button', { name: 'Añadir alimento' }).click();
+  await page.getByRole('button', { name: 'Introducir alimento manualmente' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Ingrediente ficticio');
   await page.getByLabel('Energía (kcal)').fill('300');
   await page.getByLabel('Proteínas (g)').fill('12');

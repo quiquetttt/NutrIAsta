@@ -95,7 +95,7 @@ test('mantiene navegación, texto ampliado, teclado y movimiento reducido', asyn
   await page.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
   await openMvpSection(page, 'Diario');
   await openMvpSection(page, 'Alimentos');
-  await expect(page.getByRole('button', { name: 'Añadir alimento' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Introducir alimento manualmente' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 
   await page.emulateMedia({ reducedMotion: 'reduce' });

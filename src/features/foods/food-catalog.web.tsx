@@ -7,6 +7,7 @@ import type { Food, FoodBaseUnit, FoodDraft, FoodPhoto, FoodPhotoDraft } from '@
 import { macroEnergy } from '@/mvp/nutrition-calculations';
 import { foodRepository, type FoodPortionDraft } from '@/storage/food-repository.web';
 import { AccessibleDialog } from '@/components/accessible-dialog.web';
+import { LabelOcrFlow } from '@/features/foods/label-ocr-flow.web';
 
 const EMPTY: FoodDraft = { name: '', brand: '', supermarket: '', barcode: null, baseUnit: 'g', energyKcal: 0, energyKj: null, proteinG: 0, carbohydratesG: 0, fatG: 0, energySource: 'declared', dataOrigin: 'manual', notes: '', favorite: false };
 
@@ -15,6 +16,7 @@ export function FoodCatalog() {
   const [portions, setPortions] = useState<FoodPortionDraft[]>([]); const [portionName, setPortionName] = useState(''); const [portionAmount, setPortionAmount] = useState(0); const [editingPortion, setEditingPortion] = useState<number | null>(null);
   const [newPhoto, setNewPhoto] = useState<FoodPhotoDraft>(); const [storedPhoto, setStoredPhoto] = useState<FoodPhoto | null>(null); const [removePhoto, setRemovePhoto] = useState(false);
   const [search, setSearch] = useState(''); const [favorites, setFavorites] = useState(false); const [recent, setRecent] = useState(false); const [showForm, setShowForm] = useState(false);
+  const [showOcr, setShowOcr] = useState(false);
   const [detector, setDetector] = useState({ available: false, reason: 'Comprobando lector local…' as string | null }); const [message, setMessage] = useState(''); const [error, setError] = useState<string | null>(null); const [busy, setBusy] = useState(false);
   const [pendingConfirmation, setPendingConfirmation] = useState<{ title: string; description: string; confirmLabel: string; action: () => void } | null>(null);
   const photoInput = useRef<HTMLInputElement>(null); const scanInput = useRef<HTMLInputElement>(null);
@@ -23,7 +25,7 @@ export function FoodCatalog() {
   useEffect(() => { void barcodeDetectorStatus().then(setDetector); }, []);
   const set = <K extends keyof FoodDraft>(key: K, value: FoodDraft[K]) => setDraft((current) => ({ ...current, [key]: value }));
   async function run(success: string, operation: () => Promise<void>) { setBusy(true); setError(null); try { await operation(); await refresh(); setMessage(success); } catch (caught) { setError(caught instanceof Error ? caught.message : 'Error inesperado.'); } finally { setBusy(false); } }
-  function reset() { setDraft(EMPTY); setEditingId(undefined); setPortions([]); setPortionName(''); setPortionAmount(0); setEditingPortion(null); setNewPhoto(undefined); setStoredPhoto(null); setRemovePhoto(false); setShowForm(false); }
+  function reset() { setDraft(EMPTY); setEditingId(undefined); setPortions([]); setPortionName(''); setPortionAmount(0); setEditingPortion(null); setNewPhoto(undefined); setStoredPhoto(null); setRemovePhoto(false); setShowForm(false); setShowOcr(false); }
   async function edit(food: Food) {
     const [savedPortions, savedPhoto] = await Promise.all([foodRepository.portions(food.id), foodRepository.photo(food.id)]);
     setDraft({ name: food.name, brand: food.brand, supermarket: food.supermarket, barcode: food.barcode, baseUnit: food.baseUnit, energyKcal: food.energyKcal, energyKj: food.energyKj, proteinG: food.proteinG, carbohydratesG: food.carbohydratesG, fatG: food.fatG, energySource: food.energySource, dataOrigin: food.dataOrigin, notes: food.notes, favorite: food.favorite });
@@ -33,7 +35,8 @@ export function FoodCatalog() {
   const calculatedEnergy = macroEnergy(draft.proteinG, draft.carbohydratesG, draft.fatG);
   return <View style={{ gap: 16 }}>
     {error ? <Notice danger text={error}/> : message ? <Notice text={message}/> : null}
-    <Card><SectionTitle eyebrow="Catálogo local">Alimentos</SectionTitle><TextInput accessibilityLabel="Buscar alimentos" placeholder="Buscar nombre, marca, supermercado o EAN" value={search} onChangeText={setSearch} style={input}/><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}><Filter label="Favoritos" active={favorites} onPress={() => setFavorites(!favorites)}/><Filter label="Recientes" active={recent} onPress={() => setRecent(!recent)}/></View><ActionButton label="Añadir alimento" onPress={() => { reset(); setShowForm(true); }}/></Card>
+    <Card><SectionTitle eyebrow="Catálogo local">Alimentos</SectionTitle><TextInput accessibilityLabel="Buscar alimentos" placeholder="Buscar nombre, marca o supermercado" value={search} onChangeText={setSearch} style={input}/><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}><Filter label="Favoritos" active={favorites} onPress={() => setFavorites(!favorites)}/><Filter label="Recientes" active={recent} onPress={() => setRecent(!recent)}/></View><ActionButton label="Fotografiar etiqueta nutricional" onPress={() => { reset(); setShowOcr(true); }}/><ActionButton tone="secondary" label="Introducir alimento manualmente" onPress={() => { reset(); setShowForm(true); }}/></Card>
+    {showOcr ? <LabelOcrFlow onCancel={() => setShowOcr(false)} onManual={() => { setShowOcr(false); reset(); setShowForm(true); }} onSaved={async () => { setShowOcr(false); await refresh(); setMessage('Alimento revisado y fotografía guardados localmente.'); }}/> : null}
     {showForm ? <Card><SectionTitle eyebrow={editingId ? 'Edición' : 'Nuevo'}>{editingId ? 'Editar alimento' : 'Añadir alimento'}</SectionTitle>
       <Field label="Nombre" value={draft.name} onChange={(value) => set('name', value)}/><Field label="Marca (opcional)" value={draft.brand} onChange={(value) => set('brand', value)}/><Field label="Supermercado (opcional)" value={draft.supermarket} onChange={(value) => set('supermarket', value)}/><Field label="EAN-13 o EAN-8 (opcional)" value={draft.barcode ?? ''} onChange={(value) => { set('barcode', value || null); set('dataOrigin', value ? 'barcode-manual' : 'manual'); }}/>
       <View style={{ backgroundColor: detector.available ? '#eef8f3' : palette.warningBackground, borderRadius: 14, padding: 12, gap: 8 }}><Text selectable style={{ color: detector.available ? palette.greenDark : palette.warning, fontWeight: '700' }}>{detector.available ? 'Lector EAN local disponible en este navegador.' : detector.reason}</Text><ActionButton tone="secondary" label="Fotografiar código EAN" disabled={!detector.available || busy} onPress={() => scanInput.current?.click()}/><div style={{ display: 'none' }}><input ref={scanInput} aria-label="Fotografiar código EAN" type="file" accept="image/*" capture="environment" onChange={(event) => { const file = event.currentTarget.files?.[0]; if (file) void run('Código EAN detectado localmente.', async () => { const code = await detectEanFromImage(file); setDraft((current) => ({ ...current, barcode: code, dataOrigin: 'barcode-scanned' })); }); event.currentTarget.value = ''; }}/></div></View>

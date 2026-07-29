@@ -32,7 +32,7 @@ test('las acciones de agua caben en el iPhone y permiten editar y eliminar', asy
 test('todas las acciones de recetas se adaptan al ancho del iPhone', async ({ page }) => {
   await openMvpWithProfile(page);
   await openMvpSection(page, 'Alimentos');
-  await page.getByRole('button', { name: 'Añadir alimento' }).click();
+  await page.getByRole('button', { name: 'Introducir alimento manualmente' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Ingrediente ficticio móvil');
   await page.getByLabel('Energía (kcal)').fill('100');
   await page.getByRole('button', { name: 'Guardar alimento' }).click();

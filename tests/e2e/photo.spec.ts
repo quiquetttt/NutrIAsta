@@ -27,7 +27,7 @@ test('muestra, sustituye y elimina una fotografía local sin borrar el alimento'
   );
   await openMvpWithProfile(page);
   await openMvpSection(page, 'Alimentos');
-  await page.getByRole('button', { name: 'Añadir alimento' }).click();
+  await page.getByRole('button', { name: 'Introducir alimento manualmente' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Etiqueta ficticia E2E');
   await page.getByLabel('Energía (kcal)').fill('100');
   await page.getByLabel('Fotografía local de etiqueta').setInputFiles({

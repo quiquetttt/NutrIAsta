@@ -4,7 +4,7 @@ import { openMvpSection, openMvpWithProfile } from './mvp-fixture';
 test('gestiona varias porciones, energía calculada y un duplicado EAN real', async ({ page }) => {
   await openMvpWithProfile(page);
   await openMvpSection(page, 'Alimentos');
-  await page.getByRole('button', { name: 'Añadir alimento' }).click();
+  await page.getByRole('button', { name: 'Introducir alimento manualmente' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Alimento E2E ficticio');
   await page.getByLabel('Marca (opcional)').fill('Marca E2E');
   await page.getByLabel('EAN-13 o EAN-8 (opcional)').fill('8412345678905');
@@ -42,7 +42,7 @@ test('gestiona varias porciones, energía calculada y un duplicado EAN real', as
   await expect(page.getByText('Alimento E2E ficticio', { exact: true })).toBeVisible();
   await page.getByLabel('Buscar alimentos').fill('');
 
-  await page.getByRole('button', { name: 'Añadir alimento' }).click();
+  await page.getByRole('button', { name: 'Introducir alimento manualmente' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Segundo alimento E2E');
   await page.getByLabel('EAN-13 o EAN-8 (opcional)').fill('8412345678905');
   await page.getByLabel('Energía (kcal)').fill('100');
