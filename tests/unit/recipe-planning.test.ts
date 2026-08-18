@@ -1,14 +1,16 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DiaryRepository } from '@/storage/diary-repository.web';
 import { FoodRepository } from '@/storage/food-repository.web';
 import { NutrIAstaMainDatabase } from '@/storage/main-database.web';
 import { RecipeRepository } from '@/storage/recipe-repository.web';
 
 let database: NutrIAstaMainDatabase | null = null;
-afterEach(async () => { if (database) { database.close(); await database.delete(); database = null; } });
+afterEach(async () => { vi.useRealTimers(); if (database) { database.close(); await database.delete(); database = null; } });
 
 describe('recetas y planificación con snapshots', () => {
   it('calcula, planifica, convierte y copia sin alterar el histórico', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-07-26T10:00:00.000Z'));
     database = new NutrIAstaMainDatabase(`recipes-${crypto.randomUUID()}`);
     await database.open();
     await database.metadata.bulkPut([
