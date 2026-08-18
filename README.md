@@ -1,8 +1,22 @@
-# NutrIAsta — MVP 3 local (candidato 0.4.0)
+# NutrIAsta
 
-NutrIAsta es una PWA personal en español para registrar nutrición, entrenamiento, peso, inventario doméstico y compra. Funciona con IndexedDB mediante Dexie y no tiene cuentas, backend, analítica, telemetría ni sincronización.
+PWA local-first en español para reunir nutrición, entrenamiento, peso, inventario doméstico y lista de la compra en una sola aplicación privada.
+
+[Perfil de Enrique Barroso](https://www.linkedin.com/in/enrique-barroso-039776311) · [Repositorio público](https://github.com/quiquetttt/NutrIAsta)
+
+NutrIAsta funciona con IndexedDB mediante Dexie y no tiene cuentas, backend, analítica, telemetría ni sincronización. El OCR de etiquetas nutricionales también se ejecuta en el dispositivo. Es un proyecto personal de producto e ingeniería, actualmente en estado **candidato 0.4.0** y pendiente de la validación física final en Safari/iPhone.
 
 > Utiliza exclusivamente datos y fotografías ficticios hasta que la versión 0.4.0 supere su comprobación física en el iPhone. Después, antes de empezar el uso real, conserva un backup completo reciente. La persistencia de Safari no está garantizada.
+
+## Capturas
+
+| OCR local con revisión obligatoria | Inventario y avisos de disponibilidad |
+| --- | --- |
+| <img src="tests/e2e/label-ocr.spec.ts-snapshots/08-ocr-revision-390-chromium-win32.png" alt="Revisión de una etiqueta nutricional reconocida mediante OCR local" width="320"> | <img src="tests/e2e/visual-regression.spec.ts-snapshots/03-inventario-aviso-390-chromium-win32.png" alt="Inventario local con aviso de disponibilidad" width="320"> |
+
+| Calendario de entrenamiento | Experiencia adaptada a escritorio |
+| --- | --- |
+| <img src="tests/e2e/visual-regression.spec.ts-snapshots/02-calendario-390-chromium-win32.png" alt="Calendario mensual de entrenamiento" width="320"> | <img src="tests/e2e/visual-regression.spec.ts-snapshots/07-escritorio-1280-chromium-win32.png" alt="Vista de NutrIAsta en escritorio" width="640"> |
 
 ## Alcance garantizado
 
@@ -25,7 +39,7 @@ Quedan excluidos Open Food Facts, códigos de barras, sugerencia automática de 
 
 ## Entorno y dependencias
 
-- Node.js `>=22.13.0` (validado con Node 24.14.0).
+- Node.js `>=22.13.0` (validado con Node 24.19.0).
 - npm y las versiones fijadas en `package-lock.json`.
 - Expo SDK 57, React 19.2.3, React Native 0.86 y React Native Web 0.21.
 - `tesseract.js@7.0.0` y `@tesseract.js-data/spa@1.0.0`, fijados para OCR local en Web Worker con recursos propios. No usan CDN.
@@ -52,13 +66,13 @@ npx expo-doctor
 
 `npm run test:e2e` elimina y reconstruye `dist`, elige un puerto libre y arranca un servidor exclusivo con `reuseExistingServer: false`. No reutiliza el puerto 4173 ni servidores anteriores.
 
-Resultados locales del candidato 0.4.0, ejecutados con Node 24.14.0:
+Resultados locales del candidato 0.4.0, ejecutados con Node 24.19.0 el 18 de agosto de 2026:
 
 - TypeScript: correcto.
-- Vitest: 27 archivos y 89 pruebas correctas; el backup formato 4 se prueba con las 26 tablas pobladas.
+- Vitest: 29 archivos y 97 pruebas correctas; el backup formato 4 se prueba con las 26 tablas pobladas.
 - Exportación estática, manifiesto, iconos y service worker: correctos.
-- Playwright: 75 pruebas correctas y 5 omisiones justificadas en WebKit para Windows. Incluye OCR local, cancelación, giro, límites, regresión visual, backup y una actualización real entre dos builds distintos (`b71a1ba`, versión 0.3.0 → `0.4.0`) bajo el mismo origen.
-- Expo Doctor: 20/20 comprobaciones correctas.
+- Playwright: 77 pruebas correctas y 5 omisiones justificadas en WebKit para Windows. Incluye OCR local, cancelación, giro, límites, regresión visual, backup y una actualización real entre dos builds distintos (`b71a1ba`, versión 0.3.0 → `0.4.0`) bajo el mismo origen.
+- Expo Doctor: 21/21 comprobaciones correctas.
 - Privacidad: ninguna petición de producción a terceros y ninguna API remota.
 
 Los recursos OCR locales ocupan 13.913.220 bytes: modelo español comprimido
@@ -101,9 +115,9 @@ La preparación exige espacio adicional de `ceil(payload × 1,5) + 10 MiB`. Escr
 - `Eliminar todos mis datos` exige escribir `ELIMINAR` y aceptar una segunda confirmación. Borra exclusivamente las filas funcionales del dataset activo en las 26 tablas.
 - Esa acción no elimina la base histórica `nutriasta`, el catálogo técnico de datasets, datasets de rollback, backups guardados en Archivos ni la PWA. No se realizan limpiezas silenciosas de recuperación.
 
-La revisión de producción `npm audit --omit=dev` del 29 de julio de 2026 informa 10 avisos moderados, sin vulnerabilidades críticas. Proceden de herramientas de Expo SDK 57 (`@expo/config-plugins`/`xcode`/`uuid`); la única propuesta automática completa de npm requiere `--force` y rebajaría Expo a SDK 46, por lo que es incompatible. La auditoría completa añade 7 avisos altos en la cadena de desarrollo de Workbox (`workbox-build`/plugin/EJS/Jake/filelist/minimatch/brace-expansion).
+La revisión `npm audit --omit=dev` del 18 de agosto de 2026 informa 21 avisos transitivos: 14 altos, 7 moderados y ninguno crítico. Se concentran en cadenas de compilación y configuración de Expo, Metro y React Native. La propuesta automática completa de npm requiere `--force` y plantea versiones incompatibles con Expo SDK 57, por lo que no se ha aplicado.
 
-No se ha usado `npm audit fix --force`, no se ha rebajado Expo y `expo-doctor` es correcto. Estas cadenas son herramientas de compilación y configuración, no forman parte del JavaScript funcional que ejecuta la PWA estática en Safari. Quedan documentadas como riesgo pendiente hasta que Expo/Workbox publiquen una corrección compatible.
+No se ha usado `npm audit fix --force`, no se ha rebajado Expo y `expo-doctor` es correcto. Estas cadenas forman parte de las herramientas y dependencias transitivas del proyecto; quedan documentadas como riesgo pendiente hasta que el ecosistema publique correcciones compatibles.
 
 La matriz completa y la lista física única del MVP 3 están en
 [`docs/mvp-3-ocr-etiquetas.md`](docs/mvp-3-ocr-etiquetas.md).
@@ -148,4 +162,8 @@ Si se pierde un dato, se activa una actualización sola, aparece tráfico extern
 4. Mantener el mismo origen privado, servir `sw.js` sin caché HTTP prolongada y no añadir servicios externos.
 5. Ejecutar `npm run verify:deployment -- https://URL` y registrar URL, hash y fecha.
 
-No se debe crear repositorio remoto, hacer push ni desplegar una nueva versión sin una autorización independiente.
+La publicación de este código en GitHub no autoriza el despliegue de la aplicación. No se debe desplegar una nueva versión sin una autorización independiente.
+
+## Licencia
+
+Este repositorio no incluye una licencia de uso. El código se publica para consulta y portfolio; todos los derechos permanecen reservados.
